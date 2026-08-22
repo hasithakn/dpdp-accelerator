@@ -41,7 +41,7 @@ public class DPDPConfigurationServiceImpl implements DPDPConfigurationService {
             try {
                 parser = DPDPConfigParser.getInstance();
             } catch (RuntimeException e) {
-            LOG.debug("DPDP accelerator configuration is unavailable.", e);
+                LOG.debug("DPDP accelerator configuration is unavailable.", e);
                 parser = null;
             }
         }
@@ -68,66 +68,56 @@ public class DPDPConfigurationServiceImpl implements DPDPConfigurationService {
 
     @Override
     public int getEventNotificationThreadPoolSize() {
-        return getInt("EventNotifications.ThreadPoolSize");
+
+        return configParser == null ? 4 : configParser.getEventNotificationThreadPoolSize();
     }
 
     @Override
     public long getEventNotificationBaseBackoffSeconds() {
-        return getLong("EventNotifications.BaseBackoffSeconds");
+
+        return configParser == null ? 5L : configParser.getEventNotificationBaseBackoffSeconds();
     }
 
     @Override
     public int getEventNotificationMaxRetries() {
-        return getInt("EventNotifications.MaxRetries");
+
+        return configParser == null ? 5 : configParser.getEventNotificationMaxRetries();
     }
 
     @Override
     public boolean isEventNotificationHttpCallbackUrlAllowed() {
-        return getBoolean("EventNotifications.AllowHttpCallbackUrl");
+
+        return configParser == null || configParser.isEventNotificationHttpCallbackUrlAllowed();
     }
 
     @Override
     public int getEventNotificationDeliveryWorkerBatchSize() {
-        return getInt("EventNotifications.DeliveryWorkerBatchSize");
+
+        return configParser == null ? 50 : configParser.getEventNotificationDeliveryWorkerBatchSize();
     }
 
     @Override
     public int getEventNotificationDeliveryWorkerPollSeconds() {
-        return getInt("EventNotifications.DeliveryWorkerPollSeconds");
+
+        return configParser == null ? 5 : configParser.getEventNotificationDeliveryWorkerPollSeconds();
     }
 
     @Override
     public int getEventNotificationStuckInFlightThresholdSeconds() {
-        return getInt("EventNotifications.StuckInFlightThresholdSeconds");
+
+        return configParser == null ? 10 : configParser.getEventNotificationStuckInFlightThresholdSeconds();
     }
 
     @Override
     public int getEventNotificationMaxVerificationResponseBodyBytes() {
-        return getInt("EventNotifications.MaxVerificationResponseBodyBytes");
+
+        return configParser == null ? 4096 : configParser.getEventNotificationMaxVerificationResponseBodyBytes();
     }
 
     @Override
     public int getEventNotificationPendingSubscriptionRecoveryThresholdSeconds() {
-        return getInt("EventNotifications.PendingSubscriptionRecoveryThresholdSeconds");
-    }
 
-    private int getInt(String configKey) {
-        return Integer.parseInt(getRequiredValue(configKey));
-    }
-
-    private long getLong(String configKey) {
-        return Long.parseLong(getRequiredValue(configKey));
-    }
-
-    private boolean getBoolean(String configKey) {
-        return Boolean.parseBoolean(getRequiredValue(configKey));
-    }
-
-    private String getRequiredValue(String configKey) {
-        Object configuredValue = getConfigurations().get(configKey);
-        if (configuredValue != null && !configuredValue.toString().trim().isEmpty()) {
-            return configuredValue.toString().trim();
-        }
-        throw new IllegalStateException("Required DPDP configuration is missing: " + configKey);
+        return configParser == null ? 60
+                : configParser.getEventNotificationPendingSubscriptionRecoveryThresholdSeconds();
     }
 }

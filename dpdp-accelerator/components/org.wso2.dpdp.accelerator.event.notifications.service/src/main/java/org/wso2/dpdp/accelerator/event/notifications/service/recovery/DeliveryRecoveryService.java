@@ -98,7 +98,7 @@ public class DeliveryRecoveryService {
                 deliveryPollSeconds,
                 TimeUnit.SECONDS);
 
-        LOG.info("Delivery Recovery Service activated with background recovery worker and webhook "
+        LOG.debug("Delivery Recovery Service activated with background recovery worker and webhook "
                 + "delivery worker (poll every " + deliveryPollSeconds + "s).");
     }
 
@@ -106,7 +106,7 @@ public class DeliveryRecoveryService {
     protected void deactivate() {
         shutdownGracefully("delivery-recovery-scheduler", scheduler);
         shutdownGracefully("webhook-delivery-worker-pool", workerPool);
-        LOG.info("Delivery Recovery Service deactivated cleanly.");
+        LOG.debug("Delivery Recovery Service deactivated cleanly.");
     }
 
     private static void shutdownGracefully(String name, java.util.concurrent.ExecutorService pool) {
@@ -116,7 +116,7 @@ public class DeliveryRecoveryService {
         pool.shutdown();
         try {
             if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
-                LOG.warn(name + " did not terminate within 5 s; forcing interrupt.");
+                LOG.error(name + " did not terminate within 5 s; forcing interrupt.");
                 pool.shutdownNow();
             }
         } catch (InterruptedException ie) {
@@ -131,7 +131,7 @@ public class DeliveryRecoveryService {
             try {
                 recoverPendingSubscriptions();
             } catch (Exception e) {
-                LOG.warn("Error during pending subscription recovery run: " + e.getMessage(), e);
+                LOG.error("Error during pending subscription recovery run: " + e.getMessage(), e);
             }
         }
 
@@ -144,7 +144,7 @@ public class DeliveryRecoveryService {
                 if (sub.getCallbackUrl() != null && !sub.getCallbackUrl().trim().isEmpty()) {
                     try {
                         subscriptionService.retryVerification(sub.getOrgId(), sub.getSubscriptionId());
-                        LOG.info("Recovered and re-verified pending subscription [" + sub.getSubscriptionId() + "].");
+                        LOG.debug("Recovered and re-verified pending subscription [" + sub.getSubscriptionId() + "].");
                     } catch (Exception e) {
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("Recovery retry verification for subscription [" + sub.getSubscriptionId()

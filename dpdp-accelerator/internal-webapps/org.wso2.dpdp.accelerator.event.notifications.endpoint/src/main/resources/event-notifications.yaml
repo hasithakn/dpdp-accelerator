@@ -1,0 +1,681 @@
+openapi: 3.0.1
+info:
+  title: DPDP Event Notification Framework
+  description: >-
+    Topic, subscription, and event publish/delivery APIs for the Event Notification Framework.
+    Deployed at /api/event-notifications/ (or /t/{tenant-domain}/api/event-notifications/ for a
+    non-super tenant). Only DTOs are generated from this spec (see the endpoint module's pom.xml)
+    - the paths below document the real API but are not used to generate server code, since
+    TopicEndpoint/SubscriptionEndpoint/EventEndpoint carry real orchestration logic that codegen
+    would overwrite.
+  version: v1
+servers:
+  - url: /api/event-notifications
+tags:
+  - name: topics
+    description: Event topics admins publish events against.
+  - name: subscriptions
+    description: Subscriptions Data Processors register to receive events for a topic.
+  - name: events
+    description: Published events and their downstream delivery tracking.
+paths:
+  /topics:
+    post:
+      tags: [topics]
+      summary: Create a topic
+      operationId: createTopic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopicDTO'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicDTO'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    get:
+      tags: [topics]
+      summary: List topics
+      operationId: listTopics
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - name: sort
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTopicResult'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /topics/{topicId}:
+    delete:
+      tags: [topics]
+      summary: Deregister a topic
+      operationId: deleteTopic
+      parameters:
+        - name: topicId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /subscriptions:
+    post:
+      tags: [subscriptions]
+      summary: Create a subscription
+      operationId: createSubscription
+      parameters:
+        - name: group-id
+          in: header
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionDTO'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionDTO'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    get:
+      tags: [subscriptions]
+      summary: List subscriptions
+      operationId: listSubscriptions
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: purposes
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - name: sort
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubscriptionResult'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /subscriptions/{subscriptionId}:
+    get:
+      tags: [subscriptions]
+      summary: Get a subscription
+      operationId: getSubscription
+      parameters:
+        - $ref: '#/components/parameters/subscriptionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags: [subscriptions]
+      summary: Delete a subscription
+      operationId: deleteSubscription
+      parameters:
+        - $ref: '#/components/parameters/subscriptionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The subscription has pending or in-flight deliveries and cannot be deleted yet.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /subscriptions/{subscriptionId}/verify:
+    post:
+      tags: [subscriptions]
+      summary: Retry webhook intent verification for a stale subscription
+      operationId: retryVerification
+      parameters:
+        - $ref: '#/components/parameters/subscriptionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 'Webhook intent verification failed for the callback URL.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /subscriptions/{subscriptionId}/events:
+    get:
+      tags: [subscriptions]
+      summary: List event deliveries generated for a subscription
+      operationId: listSubscriptionEvents
+      parameters:
+        - $ref: '#/components/parameters/subscriptionId'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubscriptionDeliveryResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /subscriptions/{subscriptionId}/events/{deliveryId}:
+    get:
+      tags: [subscriptions]
+      summary: Get delivery attempt history for one subscription event
+      operationId: getSubscriptionEventHistory
+      parameters:
+        - $ref: '#/components/parameters/subscriptionId'
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionEventHistoryDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /events:
+    post:
+      tags: [events]
+      summary: Publish an event
+      operationId: publishEvent
+      parameters:
+        - name: group-id
+          in: header
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreateDTO'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDTO'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: 'No active topic exists with the given name for this org.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDTO'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    get:
+      tags: [events]
+      summary: Search published events
+      operationId: listEvents
+      parameters:
+        - name: topic
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: subscriptionId
+          in: query
+          schema:
+            type: string
+        - name: purposes
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEventResult'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /events/{eventId}:
+    get:
+      tags: [events]
+      summary: Get an event by ID
+      operationId: getEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /events/{eventId}/deliveries:
+    get:
+      tags: [events]
+      summary: List downstream subscriber deliveries generated for an event
+      operationId: getEventDeliveries
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubscriptionDeliveryResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /events/{deliveryId}/history:
+    get:
+      tags: [events]
+      summary: Get delivery attempt history for one event delivery
+      operationId: getDeliveryHistory
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionEventHistoryDTO'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  parameters:
+    subscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      schema:
+        type: string
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        format: int32
+        default: 20
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        format: int32
+        default: 0
+  responses:
+    BadRequest:
+      description: 'Missing or invalid request parameter/body.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDTO'
+    NotFound:
+      description: 'No resource exists with the given ID for this org.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDTO'
+    Conflict:
+      description: 'A resource with the same identity already exists.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDTO'
+    ServerError:
+      description: 'Unexpected failure.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorDTO'
+  schemas:
+    ErrorDTO:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 'One of the EN-<HTTP status><sequence> codes (see EventNotificationServiceConstants).'
+        message:
+          type: string
+        description:
+          type: string
+    SubscriptionStatus:
+      type: string
+      enum: [active, pending, stale, deleted]
+    DeliveryMode:
+      type: string
+      enum: [webhook, poll]
+    PurposeFilterMode:
+      type: string
+      enum: [all, specific, all_except]
+    Initiator:
+      type: string
+      enum: [user, system]
+    TopicDTO:
+      type: object
+      properties:
+        topicId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        initiatedBy:
+          $ref: '#/components/schemas/Initiator'
+    FilterDTO:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/PurposeFilterMode'
+        purposes:
+          type: array
+          items:
+            type: string
+    DeliveryConfigDTO:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/DeliveryMode'
+        callbackUrl:
+          type: string
+        sharedSecret:
+          type: string
+    SubscriptionDTO:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        orgId:
+          type: string
+        groupId:
+          type: string
+        topic:
+          type: string
+        filter:
+          $ref: '#/components/schemas/FilterDTO'
+        delivery:
+          $ref: '#/components/schemas/DeliveryConfigDTO'
+        status:
+          $ref: '#/components/schemas/SubscriptionStatus'
+        createdAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+        updatedAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+        alreadyExists:
+          type: boolean
+        message:
+          type: string
+    EventCreateDTO:
+      type: object
+      properties:
+        topicName:
+          type: string
+        purposes:
+          type: array
+          items:
+            type: string
+        payload:
+          type: object
+          description: 'Arbitrary JSON, bound as-is and persisted as a JSON string on the event row.'
+    EventDTO:
+      type: object
+      properties:
+        eventId:
+          type: string
+        orgId:
+          type: string
+        groupId:
+          type: string
+        topicId:
+          type: string
+        payload:
+          type: string
+          description: 'The published payload, stored and returned as a JSON string.'
+        purposes:
+          type: array
+          items:
+            type: string
+        occurredAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+        createdAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+        topic:
+          type: string
+        deliveriesCount:
+          type: integer
+          format: int32
+    SubscriptionDeliveryDTO:
+      type: object
+      properties:
+        deliveryId:
+          type: string
+        eventId:
+          type: string
+        subscriptionId:
+          type: string
+        groupId:
+          type: string
+        topic:
+          type: string
+        currentStatus:
+          type: string
+        deliveryMode:
+          type: string
+        occurredAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+    SubscriptionDeliveryAttemptDTO:
+      type: object
+      properties:
+        attempt:
+          type: integer
+          format: int32
+        status:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+        httpStatus:
+          type: integer
+          format: int32
+          description: 'Absent for attempts that never got an HTTP response (e.g. connection failure).'
+        error:
+          type: string
+    SubscriptionEventHistoryDTO:
+      type: object
+      properties:
+        deliveryId:
+          type: string
+        eventId:
+          type: string
+        topic:
+          type: string
+        deliveryMode:
+          type: string
+        currentStatus:
+          type: string
+        occurredAt:
+          type: integer
+          format: int64
+          description: Epoch milliseconds.
+        nextRetryAt:
+          type: integer
+          format: int64
+          description: 'Epoch milliseconds. Absent once there are no more retries scheduled.'
+        completionStatus:
+          type: string
+        completionEvidence:
+          type: string
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionDeliveryAttemptDTO'
+    PaginatedTopicResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopicDTO'
+        total:
+          type: integer
+          format: int32
+    PaginatedSubscriptionResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionDTO'
+        total:
+          type: integer
+          format: int32
+    PaginatedEventResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventDTO'
+        total:
+          type: integer
+          format: int32
+    PaginatedSubscriptionDeliveryResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionDeliveryDTO'
+        total:
+          type: integer
+          format: int32

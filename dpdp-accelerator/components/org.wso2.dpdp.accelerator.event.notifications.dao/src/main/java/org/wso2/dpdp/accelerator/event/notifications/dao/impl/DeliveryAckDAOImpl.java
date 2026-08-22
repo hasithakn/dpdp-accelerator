@@ -18,11 +18,12 @@
 
 package org.wso2.dpdp.accelerator.event.notifications.dao.impl;
 
+import org.wso2.dpdp.accelerator.event.notifications.dao.constants.EventNotificationDBColumns;
 import org.osgi.service.component.annotations.Component;
 import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
 import org.wso2.dpdp.accelerator.event.notifications.common.exception.EventNotificationDataAccessException;
 import org.wso2.dpdp.accelerator.event.notifications.common.exception.EventNotificationDuplicateResourceException;
-import org.wso2.dpdp.accelerator.event.notifications.common.util.DBUtils;
+import org.wso2.dpdp.accelerator.common.util.DBUtils;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryAckDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.WebhookDeliveryAck;
 import org.wso2.dpdp.accelerator.event.notifications.dao.queries.EventNotificationCommonDBQueries;
@@ -69,11 +70,11 @@ public class DeliveryAckDAOImpl implements DeliveryAckDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(new WebhookDeliveryAck(
-                            rs.getString("ACK_ID"),
-                            rs.getString("DELIVERY_ID"),
-                            rs.getTimestamp("COMPLETED_AT"),
-                            rs.getString("COMPLETION_STATUS"),
-                            rs.getString("COMPLETION_EVIDENCE")
+                            rs.getString(EventNotificationDBColumns.ACK_ID),
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getTimestamp(EventNotificationDBColumns.COMPLETED_AT),
+                            rs.getString(EventNotificationDBColumns.COMPLETION_STATUS),
+                            rs.getString(EventNotificationDBColumns.COMPLETION_EVIDENCE)
                     ));
                 }
             }

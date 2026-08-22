@@ -23,9 +23,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
+import org.wso2.dpdp.accelerator.event.notifications.common.enums.DeliveryMode;
 import org.wso2.dpdp.accelerator.event.notifications.common.enums.DeliveryStatus;
+import org.wso2.dpdp.accelerator.event.notifications.common.enums.SubscriptionStatus;
 import org.wso2.dpdp.accelerator.event.notifications.common.enums.TopicStatus;
-import org.wso2.dpdp.accelerator.event.notifications.common.util.DBUtils;
+import org.wso2.dpdp.accelerator.common.util.DBUtils;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryAckDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.EventDAO;
@@ -305,9 +307,9 @@ public class EventPublishServiceImpl implements EventPublishService {
                     summary.getGroupId(),
                     summary.getTopicName(),
                     summary.getCurrentStatus() != null ? summary.getCurrentStatus()
-                            : EventNotificationServiceConstants.STATUS_PENDING,
+                            : SubscriptionStatus.PENDING.getValue(),
                     summary.getDeliveryMode() != null ? summary.getDeliveryMode()
-                            : EventNotificationServiceConstants.WEBHOOK_DELIVERY_MODE,
+                            : DeliveryMode.WEBHOOK.getValue(),
                     summary.getOccurredAt() != null ? summary.getOccurredAt().getTime()
                             : (summary.getCreatedAt() != null ? summary.getCreatedAt().getTime()
                                     : System.currentTimeMillis())));
@@ -337,7 +339,7 @@ public class EventPublishServiceImpl implements EventPublishService {
 
         SubscriptionDeliverySummary summary = summaryOpt.get();
         String mode = summary.getDeliveryMode() != null ? summary.getDeliveryMode()
-                : EventNotificationServiceConstants.WEBHOOK_DELIVERY_MODE;
+                : DeliveryMode.WEBHOOK.getValue();
 
         SubscriptionEventHistoryDTO dto = new SubscriptionEventHistoryDTO();
         dto.setDeliveryId(summary.getDeliveryId());
@@ -345,11 +347,14 @@ public class EventPublishServiceImpl implements EventPublishService {
         dto.setTopic(summary.getTopicName());
         dto.setDeliveryMode(mode);
         dto.setCurrentStatus(summary.getCurrentStatus() != null ? summary.getCurrentStatus()
-                : EventNotificationServiceConstants.STATUS_PENDING);
+                : SubscriptionStatus.PENDING.getValue());
         dto.setOccurredAt(summary.getOccurredAt() != null ? summary.getOccurredAt().getTime()
                 : (summary.getCreatedAt() != null ? summary.getCreatedAt().getTime() : System.currentTimeMillis()));
 
-        if (EventNotificationServiceConstants.WEBHOOK_DELIVERY_MODE.equalsIgnoreCase(mode)) {
+        // DELIVERY_MODE is DB-constrained to the exact lowercase enum values (see
+        // CHK_SM_DELIVERY_MODE), so an exact match is sufficient - kept consistent with
+        // SubscriptionServiceImpl.getSubscriptionEventHistory's equivalent check.
+        if (DeliveryMode.WEBHOOK.getValue().equals(mode)) {
             Optional<WebhookDelivery> whOpt = deliveryDAO.getWebhookDeliveryById(deliveryId.trim(), orgId.trim());
             if (whOpt.isPresent()) {
                 WebhookDelivery wh = whOpt.get();
@@ -367,24 +372,27 @@ public class EventPublishServiceImpl implements EventPublishService {
                 dto.setCompletionEvidence(ack.getCompletionEvidence());
             }
 
+            // Error-formatting kept identical to SubscriptionServiceImpl.getSubscriptionEventHistory's
+            // equivalent block - both feed the same SubscriptionEventHistoryDTO shape, so a delivery
+            // attempt must render the same way regardless of which endpoint fetched it.
             List<WebhookDeliveryAudit> audits = deliveryDAO.getWebhookDeliveryAudits(deliveryId.trim(), orgId.trim());
             List<SubscriptionDeliveryAttemptDTO> history = new ArrayList<>();
             int attemptNum = 1;
             for (WebhookDeliveryAudit audit : audits) {
-                String auditStatus;
                 Integer httpStatus = null;
-                String respCode = audit.getResponseCode();
-                if (respCode != null) {
+                String error = null;
+                String auditStatus = DeliveryStatus.FAILED.getValue();
+                if (audit.getResponseCode() != null) {
                     try {
-                        int code = Integer.parseInt(respCode);
-                        httpStatus = code;
-                        auditStatus = (code >= 200 && code < 300) ? DeliveryStatus.DELIVERED.getValue()
-                                : DeliveryStatus.FAILED.getValue();
+                        httpStatus = Integer.parseInt(audit.getResponseCode().trim());
+                        if (httpStatus >= 200 && httpStatus < 300) {
+                            auditStatus = DeliveryStatus.DELIVERED.getValue();
+                        } else {
+                            error = "HTTP " + httpStatus;
+                        }
                     } catch (NumberFormatException e) {
-                        auditStatus = DeliveryStatus.FAILED.getValue();
+                        error = audit.getResponseCode();
                     }
-                } else {
-                    auditStatus = DeliveryStatus.FAILED.getValue();
                 }
 
                 history.add(new SubscriptionDeliveryAttemptDTO(
@@ -394,7 +402,7 @@ public class EventPublishServiceImpl implements EventPublishService {
                                 : (audit.getCreatedAt() != null ? audit.getCreatedAt().getTime()
                                         : System.currentTimeMillis()),
                         httpStatus,
-                        (httpStatus != null && httpStatus >= 200 && httpStatus < 300) ? null : respCode));
+                        error));
             }
             dto.setHistory(history);
         } else {

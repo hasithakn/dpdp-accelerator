@@ -19,13 +19,13 @@
 package org.wso2.dpdp.accelerator.event.notifications.service.dispatch;
 
 import org.wso2.dpdp.accelerator.common.config.DPDPConfigurationService;
+import org.wso2.dpdp.accelerator.common.util.HTTPClientUtils;
 import org.wso2.dpdp.accelerator.event.notifications.common.enums.DeliveryStatus;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.WebhookDelivery;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.WebhookDeliveryDispatchContext;
 
 import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -94,10 +94,12 @@ public class WebhookDeliveryWorker implements Runnable {
         this.configurationService = configurationService;
     }
 
+    // Delegates to the shared, SSRF-guarded singleton (redirects disabled) rather than building
+    // a second, unguarded HttpClient - this worker submits WebhookDeliveryTask instances that
+    // POST to subscriber-supplied callback URLs, so it needs the same protection every other
+    // outbound caller in this codebase gets.
     private static HttpClient defaultHttpClient() {
-        return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
+        return HTTPClientUtils.getHttpClient();
     }
 
     @Override
@@ -105,7 +107,7 @@ public class WebhookDeliveryWorker implements Runnable {
         try {
             runTick();
         } catch (Exception e) {
-            LOG.warn("Webhook delivery worker tick failed: " + e.getMessage(), e);
+            LOG.error("Webhook delivery worker tick failed: " + e.getMessage(), e);
         }
     }
 
@@ -129,12 +131,12 @@ public class WebhookDeliveryWorker implements Runnable {
                     System.currentTimeMillis() - thresholdSeconds * 1000L);
             List<WebhookDeliveryDispatchContext> stuck = fetch(remaining, true);
             if (!stuck.isEmpty()) {
-                LOG.info("Reclaiming " + stuck.size() + " stuck in-flight webhook deliveries.");
+                LOG.debug("Reclaiming " + stuck.size() + " stuck in-flight webhook deliveries.");
             }
             reclaimed = submitBatch(stuck, true, cutoff);
         }
         if (submitted + reclaimed > 0) {
-            LOG.info("Webhook delivery tick: submitted=" + submitted + ", reclaimed=" + reclaimed + ".");
+            LOG.debug("Webhook delivery tick: submitted=" + submitted + ", reclaimed=" + reclaimed + ".");
         }
         return new int[] { submitted, reclaimed };
     }
@@ -152,7 +154,7 @@ public class WebhookDeliveryWorker implements Runnable {
             }
             return deliveryDAO.getPendingWebhookDispatchContexts(limit);
         } catch (Exception e) {
-            LOG.warn("Failed to fetch " + (reclaim ? "stuck" : "pending") + " webhook deliveries: "
+            LOG.error("Failed to fetch " + (reclaim ? "stuck" : "pending") + " webhook deliveries: "
                     + e.getMessage(), e);
             return Collections.emptyList();
         }
@@ -214,7 +216,7 @@ public class WebhookDeliveryWorker implements Runnable {
         try {
             return deliveryDAO.claimWebhookDelivery(deliveryId);
         } catch (Exception e) {
-            LOG.warn("claimWebhookDelivery failed for [" + deliveryId + "]: "
+            LOG.error("claimWebhookDelivery failed for [" + deliveryId + "]: "
                     + e.getMessage(), e);
             return false;
         }
@@ -224,7 +226,7 @@ public class WebhookDeliveryWorker implements Runnable {
         try {
             return deliveryDAO.claimStuckWebhookDelivery(deliveryId, cutoff);
         } catch (Exception e) {
-            LOG.warn("claimStuckWebhookDelivery failed for [" + deliveryId + "]: "
+            LOG.error("claimStuckWebhookDelivery failed for [" + deliveryId + "]: "
                     + e.getMessage(), e);
             return false;
         }
@@ -250,7 +252,7 @@ public class WebhookDeliveryWorker implements Runnable {
      * the FAILED status and the reason in the worker logs.
      */
     private void markUnrecoverable(WebhookDelivery delivery, String reason) {
-        LOG.warn("Marking webhook delivery [" + delivery.getDeliveryId() + "] unrecoverable: " + reason);
+        LOG.debug("Marking webhook delivery [" + delivery.getDeliveryId() + "] unrecoverable: " + reason);
         WebhookDelivery failed = new WebhookDelivery(
                 delivery.getDeliveryId(),
                 delivery.getSubscriptionId(),

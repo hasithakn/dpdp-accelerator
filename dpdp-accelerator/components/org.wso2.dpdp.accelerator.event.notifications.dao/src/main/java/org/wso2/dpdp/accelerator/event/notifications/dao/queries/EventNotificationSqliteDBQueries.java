@@ -18,23 +18,21 @@
 
 package org.wso2.dpdp.accelerator.event.notifications.dao.queries;
 
+import org.wso2.dpdp.accelerator.event.notifications.common.enums.SubscriptionStatus;
+
 /**
  * SQLite dialect query provider for DPDP Event Notification Framework.
  */
 public class EventNotificationSqliteDBQueries extends EventNotificationCommonDBQueries {
 
+    // SQLite doesn't support row-level locking - the base query's trailing "FOR UPDATE" would
+    // fail, so this override is the same SELECT without it.
     @Override
     public String getLockActiveSubscriptionsQuery() {
         return "SELECT SUBSCRIPTION_ID, ORG_ID, GROUP_ID, TOPIC_ID, PURPOSE_FILTER_MODE, PURPOSE_SET_HASH, DELIVERY_MODE, " +
                "CALLBACK_URL, SHARED_SECRET, STATUS, CREATED_AT, UPDATED_AT " +
                "FROM SUBSCRIPTION WHERE ORG_ID = ? AND GROUP_ID = ? AND TOPIC_ID = ? " +
-               "AND STATUS IN ('active', 'pending', 'stale')";
-    }
-
-    @Override
-    public String getGetPendingWebhookDeliveriesQuery() {
-        return "SELECT DELIVERY_ID, SUBSCRIPTION_ID, EVENT_ID, STATUS, ATTEMPT_COUNT, NEXT_RETRY_AT, CREATED_AT, UPDATED_AT, DELIVERED_AT " +
-               "FROM WEBHOOK_DELIVERY WHERE STATUS = 'pending' AND (NEXT_RETRY_AT IS NULL OR NEXT_RETRY_AT <= CURRENT_TIMESTAMP) " +
-               "ORDER BY CREATED_AT ASC LIMIT ?";
+               "AND STATUS IN ('" + SubscriptionStatus.ACTIVE.getValue() + "', '" + SubscriptionStatus.PENDING.getValue()
+               + "', '" + SubscriptionStatus.STALE.getValue() + "')";
     }
 }

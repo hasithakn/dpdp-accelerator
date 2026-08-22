@@ -23,7 +23,6 @@ import org.mockito.MockitoAnnotations;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.dpdp.accelerator.event.notifications.endpoint.handler.EventHandler;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.EventCreateDTO;
 import org.wso2.dpdp.accelerator.event.notifications.service.dto.EventDTO;
 import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionDeliveryDTO;
 import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionEventHistoryDTO;
@@ -47,9 +46,10 @@ import static org.testng.Assert.assertEquals;
 /**
  * Verifies the JAX-RS wiring on {@link EventEndpoint} — the handler is the
  * integration point, so the endpoint test only checks that the right
- * field/header values are forwarded and the response carries the right
- * HTTP status. Behaviour of the underlying service is covered by
- * {@code EventPublishServiceImplTest}.
+ * field/header values are forwarded (converted through
+ * {@link org.wso2.dpdp.accelerator.event.notifications.endpoint.util.EventNotificationDtoMapper})
+ * and the response carries the right HTTP status. Behaviour of the
+ * underlying service is covered by {@code EventPublishServiceImplTest}.
  */
 public class EventEndpointTest {
 
@@ -66,24 +66,35 @@ public class EventEndpointTest {
 
     @Test
     public void publishEvent_returns201WithDtoBody() {
-        EventCreateDTO request = new EventCreateDTO("topic-a", Arrays.asList("marketing"),
-                new HashMap<>());
         EventDTO published = new EventDTO("evt-1", "org1", "g1", "topic-id-1", "{}",
                 Arrays.asList("marketing"), null, null);
         when(eventHandler.publishEvent(eq("org1"), eq("g1"), any())).thenReturn(published);
 
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventCreateDTO request =
+                new org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventCreateDTO()
+                        .topicName("topic-a")
+                        .purposes(Arrays.asList("marketing"))
+                        .payload(new HashMap<>());
+
         Response response = eventEndpoint.publishEvent("g1", request);
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        assertEquals(response.getEntity(), published);
-        verify(eventHandler, times(1)).publishEvent("org1", "g1", request);
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventDTO body =
+                (org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventDTO) response.getEntity();
+        assertEquals(body.getEventId(), "evt-1");
+        assertEquals(body.getOrgId(), "org1");
+        assertEquals(body.getGroupId(), "g1");
+        verify(eventHandler, times(1)).publishEvent(eq("org1"), eq("g1"), any());
     }
 
     @Test
     public void publishEvent_propagatesHandlerException() {
-        EventCreateDTO request = new EventCreateDTO("topic-a", null, null);
         when(eventHandler.publishEvent(any(), any(), any()))
                 .thenThrow(new RuntimeException("boom"));
+
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventCreateDTO request =
+                new org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventCreateDTO()
+                        .topicName("topic-a");
 
         try {
             eventEndpoint.publishEvent("g1", request);
@@ -101,14 +112,21 @@ public class EventEndpointTest {
         eventDTO.setDeliveriesCount(1);
         PaginatedResult<EventDTO> page = new PaginatedResult<>(
                 Collections.singletonList(eventDTO), 1);
-        when(eventHandler.searchEvents(eq("org1"), eq("topic-1"), eq("DELIVERED"), eq("org1"), eq("marketing"), eq("search"), eq(10), eq(0)))
-                .thenReturn(page);
+        when(eventHandler.searchEvents(eq("org1"), eq("topic-1"), eq("DELIVERED"), eq("org1"), eq("marketing"),
+                eq("search"), eq(10), eq(0))).thenReturn(page);
 
+        // TODO: "sub-1" (subscriptionId) is accepted by the endpoint but never actually used -
+        // see the TODO on EventEndpoint.listEvents. This test documents current (buggy) behavior.
         Response response = eventEndpoint.listEvents("topic-1", "DELIVERED", "sub-1", "marketing", "search", 10, 0);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity(), page);
-        verify(eventHandler, times(1)).searchEvents("org1", "topic-1", "DELIVERED", "org1", "marketing", "search", 10, 0);
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedEventResult body =
+                (org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedEventResult) response
+                        .getEntity();
+        assertEquals(body.getTotal().intValue(), 1);
+        assertEquals(body.getItems().get(0).getEventId(), "evt-1");
+        verify(eventHandler, times(1)).searchEvents("org1", "topic-1", "DELIVERED", "org1", "marketing", "search",
+                10, 0);
     }
 
     @Test
@@ -134,7 +152,11 @@ public class EventEndpointTest {
         Response response = eventEndpoint.getDeliveryHistory("dlv-1");
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity(), dto);
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.SubscriptionEventHistoryDTO body =
+                (org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.SubscriptionEventHistoryDTO) response
+                        .getEntity();
+        assertEquals(body.getDeliveryId(), "dlv-1");
+        assertEquals(body.getEventId(), "evt-1");
         verify(eventHandler, times(1)).getDeliveryHistory("org1", "dlv-1");
     }
 
@@ -146,7 +168,9 @@ public class EventEndpointTest {
         Response response = eventEndpoint.getEvent("evt-1");
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity(), dto);
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventDTO body =
+                (org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventDTO) response.getEntity();
+        assertEquals(body.getEventId(), "evt-1");
         verify(eventHandler, times(1)).getEventById("org1", "evt-1");
     }
 
@@ -161,7 +185,11 @@ public class EventEndpointTest {
         Response response = eventEndpoint.getEventDeliveries("evt-1", 20, 0);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        assertEquals(response.getEntity(), page);
+        org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedSubscriptionDeliveryResult body =
+                (org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedSubscriptionDeliveryResult)
+                        response.getEntity();
+        assertEquals(body.getTotal().intValue(), 1);
+        assertEquals(body.getItems().get(0).getDeliveryId(), "dlv-1");
         verify(eventHandler, times(1)).getEventDeliveries("org1", "evt-1", 20, 0);
     }
 }

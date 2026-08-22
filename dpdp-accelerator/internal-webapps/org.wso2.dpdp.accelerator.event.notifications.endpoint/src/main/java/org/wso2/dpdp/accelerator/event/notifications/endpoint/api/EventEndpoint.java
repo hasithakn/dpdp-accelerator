@@ -18,12 +18,14 @@
 
 package org.wso2.dpdp.accelerator.event.notifications.endpoint.api;
 
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventCreateDTO;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.EventDTO;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedEventResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedSubscriptionDeliveryResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.SubscriptionEventHistoryDTO;
 import org.wso2.dpdp.accelerator.event.notifications.endpoint.handler.EventHandler;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.EventCreateDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.EventDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionDeliveryDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionEventHistoryDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.model.PaginatedResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.util.EventNotificationDtoMapper;
+import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
 import org.wso2.dpdp.accelerator.common.util.DPDPTenantContext;
 
 import javax.ws.rs.Consumes;
@@ -66,12 +68,18 @@ public class EventEndpoint {
 
     @POST
     public Response publishEvent(
-            @HeaderParam("group-id") String groupId,
+            @HeaderParam(EventNotificationCommonConstants.GROUP_ID_HEADER) String groupId,
             EventCreateDTO request) {
-        EventDTO dto = eventHandler.publishEvent(organizationIdResolver.get(), groupId, request);
+        EventDTO dto = EventNotificationDtoMapper.toDto(
+                eventHandler.publishEvent(organizationIdResolver.get(), groupId,
+                        EventNotificationDtoMapper.toServiceDto(request)));
         return Response.status(Response.Status.CREATED).entity(dto).build();
     }
 
+    // TODO: subscriptionId is accepted here but never actually used as a filter -
+    // EventHandler.searchEvents's 4th positional parameter is groupId, not subscriptionId, so
+    // this currently passes orgId through in its place. Needs review: either wire a real
+    // subscription-based filter through to the DAO, or drop this query param.
     @GET
     public Response listEvents(
             @QueryParam("topic") String topic,
@@ -79,11 +87,11 @@ public class EventEndpoint {
             @QueryParam("subscriptionId") String subscriptionId,
             @QueryParam("purposes") String purposes,
             @QueryParam("search") String search,
-            @QueryParam("limit") @DefaultValue("20") int limit,
-            @QueryParam("offset") @DefaultValue("0") int offset) {
+            @QueryParam("limit") @DefaultValue(EventNotificationCommonConstants.DEFAULT_LIMIT_STR) int limit,
+            @QueryParam("offset") @DefaultValue(EventNotificationCommonConstants.DEFAULT_OFFSET_STR) int offset) {
         String orgId = organizationIdResolver.get();
-        PaginatedResult<EventDTO> result = eventHandler.searchEvents(
-                orgId, topic, status, orgId, purposes, search, limit, offset);
+        PaginatedEventResult result = EventNotificationDtoMapper.toEventResultDto(
+                eventHandler.searchEvents(orgId, topic, status, orgId, purposes, search, limit, offset));
         return Response.ok(result).build();
     }
 
@@ -91,7 +99,8 @@ public class EventEndpoint {
     @Path("/{deliveryId}/history")
     public Response getDeliveryHistory(
             @PathParam("deliveryId") String deliveryId) {
-        SubscriptionEventHistoryDTO dto = eventHandler.getDeliveryHistory(organizationIdResolver.get(), deliveryId);
+        SubscriptionEventHistoryDTO dto = EventNotificationDtoMapper.toDto(
+                eventHandler.getDeliveryHistory(organizationIdResolver.get(), deliveryId));
         return Response.ok(dto).build();
     }
 
@@ -99,7 +108,8 @@ public class EventEndpoint {
     @Path("/{eventId}")
     public Response getEvent(
             @PathParam("eventId") String eventId) {
-        EventDTO dto = eventHandler.getEventById(organizationIdResolver.get(), eventId);
+        EventDTO dto = EventNotificationDtoMapper.toDto(
+                eventHandler.getEventById(organizationIdResolver.get(), eventId));
         return Response.ok(dto).build();
     }
 
@@ -107,10 +117,10 @@ public class EventEndpoint {
     @Path("/{eventId}/deliveries")
     public Response getEventDeliveries(
             @PathParam("eventId") String eventId,
-            @QueryParam("limit") @DefaultValue("20") int limit,
-            @QueryParam("offset") @DefaultValue("0") int offset) {
-        PaginatedResult<SubscriptionDeliveryDTO> result = eventHandler.getEventDeliveries(
-                organizationIdResolver.get(), eventId, limit, offset);
+            @QueryParam("limit") @DefaultValue(EventNotificationCommonConstants.DEFAULT_LIMIT_STR) int limit,
+            @QueryParam("offset") @DefaultValue(EventNotificationCommonConstants.DEFAULT_OFFSET_STR) int offset) {
+        PaginatedSubscriptionDeliveryResult result = EventNotificationDtoMapper.toDeliveryResultDto(
+                eventHandler.getEventDeliveries(organizationIdResolver.get(), eventId, limit, offset));
         return Response.ok(result).build();
     }
 }

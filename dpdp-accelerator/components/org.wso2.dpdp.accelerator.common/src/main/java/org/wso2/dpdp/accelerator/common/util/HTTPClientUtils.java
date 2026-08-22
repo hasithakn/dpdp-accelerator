@@ -1,13 +1,13 @@
-/**
+/*
  * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
- * <p>
+ *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -16,8 +16,9 @@
  * under the License.
  */
 
-package org.wso2.dpdp.accelerator.event.notifications.common.util;
+package org.wso2.dpdp.accelerator.common.util;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -28,19 +29,29 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Shared HTTP Client Factory providing SSRF-guarded outbound connections.
+ * Shared HTTP client utility providing SSRF-guarded outbound connections.
+ *
+ * <p>Named to match the WSO2 Open Banking accelerator's {@code HTTPClientUtils} precedent, but
+ * intentionally not a port of it: OB's version wraps Apache {@code CloseableHttpClient} with
+ * TLS/keystore/hostname-verifier configuration for calling a fixed set of pre-registered banking
+ * integration endpoints - it has no target-URL validation at all, since those endpoints are
+ * operator-configured, not attacker-influenced. This accelerator's outbound calls (webhook
+ * deliveries, subscription verification) go to a URL a Data Fiduciary API caller supplies at
+ * request time, so the risk profile is different: the client itself can stay a plain
+ * {@link HttpClient} with default trust, but every target URL must be validated against SSRF
+ * before use.</p>
  */
-public class HTTPClientFactory {
+public final class HTTPClientUtils {
 
     private static volatile HttpClient httpClient;
     private static final Set<Integer> ALLOWED_PORTS = new HashSet<>(Arrays.asList(-1, 80, 443, 8443));
 
-    private HTTPClientFactory() {
+    private HTTPClientUtils() {
     }
 
     public static HttpClient getHttpClient() {
         if (httpClient == null) {
-            synchronized (HTTPClientFactory.class) {
+            synchronized (HTTPClientUtils.class) {
                 if (httpClient == null) {
                     httpClient = HttpClient.newBuilder()
                             .connectTimeout(Duration.ofSeconds(10))
@@ -84,9 +95,22 @@ public class HTTPClientFactory {
         for (InetAddress addr : addresses) {
             if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
                     || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()
-                    || addr.isMulticastAddress()) {
+                    || addr.isMulticastAddress() || isIPv6UniqueLocalAddress(addr)) {
                 throw new IllegalArgumentException("Target IP [" + addr.getHostAddress() + "] is in a restricted range.");
             }
         }
+    }
+
+    /**
+     * {@link InetAddress#isSiteLocalAddress()} only recognizes the deprecated IPv6 site-local
+     * range ({@code fec0::/10}), not the modern Unique Local Address range actually used by
+     * private IPv6 networks today ({@code fc00::/7}, RFC 4193) - check that separately.
+     */
+    private static boolean isIPv6UniqueLocalAddress(InetAddress addr) {
+        if (!(addr instanceof Inet6Address)) {
+            return false;
+        }
+        byte firstByte = addr.getAddress()[0];
+        return (firstByte & 0xFE) == 0xFC;
     }
 }

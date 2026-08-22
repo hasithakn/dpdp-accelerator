@@ -27,10 +27,6 @@ public class EventNotificationCommonConstants {
     private EventNotificationCommonConstants() {
     }
 
-    // Datasource Constants
-    public static final String JDBC_DPDP_DATASOURCE_NAME = "jdbc/WSO2DPDP_DB";
-    public static final String JDBC_DPDP_JNDI_ENV_NAME = "java:comp/env/jdbc/WSO2DPDP_DB";
-
     // Data Access Error Messages
     public static final String ERROR_ADDING_TOPIC = "Error adding topic [%s]";
     public static final String ERROR_GETTING_TOPIC_BY_ID = "Error getting topic by ID [%s]";
@@ -87,4 +83,12 @@ public class EventNotificationCommonConstants {
 
     public static final int DEFAULT_LIMIT = 20;
     public static final int MAX_LIMIT = 100;
+
+    // String form for use in JAX-RS @DefaultValue annotations, which require a compile-time
+    // constant String expression - keep in sync with DEFAULT_LIMIT above.
+    public static final String DEFAULT_LIMIT_STR = "20";
+    public static final String DEFAULT_OFFSET_STR = "0";
+
+    // Also for a JAX-RS annotation (@HeaderParam) - same compile-time-constant requirement.
+    public static final String GROUP_ID_HEADER = "group-id";
 }

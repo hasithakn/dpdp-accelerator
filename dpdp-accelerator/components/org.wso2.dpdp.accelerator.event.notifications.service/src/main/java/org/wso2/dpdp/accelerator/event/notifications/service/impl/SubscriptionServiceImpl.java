@@ -23,8 +23,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.wso2.dpdp.accelerator.common.config.DPDPConfigurationService;
+import org.wso2.dpdp.accelerator.common.util.HTTPClientUtils;
 import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
-import org.wso2.dpdp.accelerator.event.notifications.common.util.HTTPClientFactory;
 import org.wso2.dpdp.accelerator.event.notifications.common.util.PurposeOverlapUtils;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryAckDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryDAO;
@@ -62,7 +62,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -123,7 +122,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             return t;
         });
 
-        this.httpClient = HTTPClientFactory.getHttpClient();
+        this.httpClient = HTTPClientUtils.getHttpClient();
     }
 
     @Deactivate
@@ -238,7 +237,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         String normalizedCallbackUrl = callbackUrl != null ? callbackUrl.trim().toLowerCase() : "";
 
         for (Subscription existing : existingSubs) {
-            if (!groupId.equals(existing.getGroupId() != null ? existing.getGroupId() : "")) {
+            // Case-insensitive, matching EventFanOutServiceImpl.matchesGroup's semantics for the
+            // same field - a subscription created with groupId "TeamA" must be treated as the
+            // same group as one already registered as "teama".
+            String existingGroupId = existing.getGroupId() != null ? existing.getGroupId() : "";
+            if (!groupId.equalsIgnoreCase(existingGroupId)) {
                 continue;
             }
 
@@ -288,7 +291,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         long delaySeconds = 0;
         if (attempt > 0) {
             delaySeconds = getConfiguration().getEventNotificationBaseBackoffSeconds()
-                    * (long) Math.pow(3, attempt - 1);
+                    * (long) Math.pow(EventNotificationServiceConstants.RETRY_BACKOFF_MULTIPLIER, attempt - 1);
         }
         scheduler.schedule(new WebhookVerificationTask(subscriptionId, orgId, callbackUrl, topicName, attempt),
                 delaySeconds,
@@ -318,21 +321,22 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 boolean updated = subscriptionDAO.updateSubscriptionStatus(subscriptionId, orgId,
                         SubscriptionStatus.PENDING.getValue(), SubscriptionStatus.ACTIVE.getValue());
                 if (updated) {
-                    LOG.info("Webhook verification succeeded for subscription [" + subscriptionId + "] on attempt "
+                    LOG.debug("Webhook verification succeeded for subscription [" + subscriptionId + "] on attempt "
                             + (attempt + 1) + ".");
                 } else {
-                    LOG.info("Webhook verification succeeded for subscription [" + subscriptionId
+                    LOG.debug("Webhook verification succeeded for subscription [" + subscriptionId
                             + "] but status was no longer PENDING.");
                 }
             } catch (Exception e) {
                 int nextAttempt = attempt + 1;
                 int maxRetries = getConfiguration().getEventNotificationMaxRetries();
                 if (nextAttempt <= maxRetries) {
-                    LOG.warn("Webhook verification attempt " + (attempt + 1)
-                            + " failed for subscription [" + subscriptionId + "]. Retrying. Reason: " + e.getMessage());
+                    LOG.debug("Webhook verification attempt " + (attempt + 1)
+                            + " failed for subscription [" + subscriptionId + "]. Retrying. Reason: "
+                            + sanitize(e.getMessage()));
                     scheduleWebhookVerificationTask(subscriptionId, orgId, callbackUrl, topicName, nextAttempt);
                 } else {
-                    LOG.warn("Exhausted all retries for subscription [" + subscriptionId + "]. Marking as STALE.");
+                    LOG.debug("Exhausted all retries for subscription [" + subscriptionId + "]. Marking as STALE.");
                     subscriptionDAO.updateSubscriptionStatus(subscriptionId, orgId,
                             SubscriptionStatus.PENDING.getValue(),
                             SubscriptionStatus.STALE.getValue());
@@ -349,7 +353,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                     EventNotificationServiceConstants.CALLBACK_URL_REQUIRED_ERROR_MSG, 422);
         }
         try {
-            HTTPClientFactory.validateUrl(callbackUrl);
+            HTTPClientUtils.validateUrl(callbackUrl);
             URI uri = URI.create(callbackUrl.trim());
             String scheme = uri.getScheme();
             if ("http".equalsIgnoreCase(scheme)
@@ -381,12 +385,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(verificationUrl))
-                    .timeout(Duration.ofSeconds(5))
+                    .timeout(EventNotificationServiceConstants.OUTBOUND_HTTP_TIMEOUT)
                     .GET()
                     .build();
 
             HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        int maxBodyBytes = getConfiguration().getEventNotificationMaxVerificationResponseBodyBytes();
+            int maxBodyBytes = getConfiguration().getEventNotificationMaxVerificationResponseBodyBytes();
             if (response.statusCode() != 200) {
                 throw new EventNotificationException(
                         EventNotificationServiceConstants.ERROR_CODE_WEBHOOK_VERIFICATION_FAILED,
@@ -662,9 +666,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                     summary.getEventId(),
                     summary.getTopicName(),
                     summary.getCurrentStatus() != null ? summary.getCurrentStatus()
-                            : EventNotificationServiceConstants.STATUS_PENDING,
+                            : SubscriptionStatus.PENDING.getValue(),
                     summary.getDeliveryMode() != null ? summary.getDeliveryMode()
-                            : EventNotificationServiceConstants.WEBHOOK_DELIVERY_MODE,
+                            : DeliveryMode.WEBHOOK.getValue(),
                     summary.getOccurredAt() != null ? summary.getOccurredAt().getTime()
                             : (summary.getCreatedAt() != null ? summary.getCreatedAt().getTime()
                                     : System.currentTimeMillis())));
@@ -704,7 +708,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         SubscriptionDeliverySummary summary = summaryOpt.get();
         String mode = summary.getDeliveryMode() != null ? summary.getDeliveryMode()
-                : EventNotificationServiceConstants.WEBHOOK_DELIVERY_MODE;
+                : DeliveryMode.WEBHOOK.getValue();
 
         SubscriptionEventHistoryDTO dto = new SubscriptionEventHistoryDTO();
         dto.setDeliveryId(summary.getDeliveryId());
@@ -712,11 +716,11 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         dto.setTopic(summary.getTopicName());
         dto.setDeliveryMode(mode);
         dto.setCurrentStatus(summary.getCurrentStatus() != null ? summary.getCurrentStatus()
-                : EventNotificationServiceConstants.STATUS_PENDING);
+                : SubscriptionStatus.PENDING.getValue());
         dto.setOccurredAt(summary.getOccurredAt() != null ? summary.getOccurredAt().getTime()
                 : (summary.getCreatedAt() != null ? summary.getCreatedAt().getTime() : System.currentTimeMillis()));
 
-        if (EventNotificationServiceConstants.WEBHOOK_DELIVERY_MODE.equals(mode)) {
+        if (DeliveryMode.WEBHOOK.getValue().equals(mode)) {
             Optional<WebhookDelivery> whOpt = deliveryDAO.getWebhookDeliveryById(deliveryId.trim(), orgId.trim());
             if (whOpt.isPresent()) {
                 WebhookDelivery wh = whOpt.get();
@@ -762,7 +766,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             if (attempts.isEmpty()) {
                 attempts.add(new SubscriptionDeliveryAttemptDTO(1,
                         summary.getCurrentStatus() != null ? summary.getCurrentStatus()
-                                : EventNotificationServiceConstants.STATUS_PENDING,
+                                : SubscriptionStatus.PENDING.getValue(),
                         summary.getCreatedAt() != null ? summary.getCreatedAt().getTime() : System.currentTimeMillis(),
                         null, null));
             }
@@ -771,7 +775,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             Optional<PollDelivery> pollOpt = deliveryDAO.getPollDeliveryById(deliveryId.trim(), orgId.trim());
             List<SubscriptionDeliveryAttemptDTO> attempts = new ArrayList<>();
             String pollStatus = summary.getCurrentStatus() != null ? summary.getCurrentStatus()
-                    : EventNotificationServiceConstants.STATUS_PENDING;
+                    : SubscriptionStatus.PENDING.getValue();
             long timestamp = summary.getOccurredAt() != null ? summary.getOccurredAt().getTime()
                     : System.currentTimeMillis();
 
@@ -825,5 +829,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             return new org.wso2.dpdp.accelerator.common.config.DPDPConfigurationServiceImpl(false);
         }
         return configurationService;
+    }
+
+    private static String sanitize(String value) {
+        return value == null ? null : value.replaceAll("[\r\n]", "");
     }
 }

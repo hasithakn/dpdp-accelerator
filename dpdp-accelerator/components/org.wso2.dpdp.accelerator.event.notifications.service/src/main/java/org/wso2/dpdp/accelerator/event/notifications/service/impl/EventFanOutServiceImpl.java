@@ -155,8 +155,8 @@ public class EventFanOutServiceImpl implements EventFanOutService {
                 ? deliveryDAO.addWebhookDelivery(conn, delivery)
                 : deliveryDAO.addWebhookDelivery(delivery);
         if (saved) {
-            if (LOG.isInfoEnabled()) {
-                LOG.info("Queued webhook delivery [" + deliveryId + "] for subscription ["
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Queued webhook delivery [" + deliveryId + "] for subscription ["
                         + subscription.getSubscriptionId() + "] on event [" + event.getEventId() + "].");
             }
         } else {

@@ -47,6 +47,9 @@ public class SubscriptionHandler {
         this.subscriptionService = subscriptionService;
     }
 
+    // TODO: the "group-id" header the endpoint accepts on this call is currently discarded -
+    // groupId is always derived from orgId below instead. Revisit whether callers should be
+    // able to set a distinct groupId here (see SubscriptionEndpoint.createSubscription).
     public SubscriptionDTO createSubscription(String orgId, SubscriptionDTO request) {
         String groupId = orgId != null ? orgId.trim() : null;
         String topic = request != null ? request.getTopic() : null;

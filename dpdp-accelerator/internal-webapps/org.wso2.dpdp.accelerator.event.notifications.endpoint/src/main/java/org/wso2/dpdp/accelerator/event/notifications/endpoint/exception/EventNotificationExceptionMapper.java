@@ -1,13 +1,13 @@
-/**
+/*
  * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
- * <p>
+ *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -20,6 +20,9 @@ package org.wso2.dpdp.accelerator.event.notifications.endpoint.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.error.EventNotificationEndpointErrorCodes;
 import org.wso2.dpdp.accelerator.event.notifications.service.exception.EventNotificationException;
 
 import javax.validation.ConstraintViolationException;
@@ -33,13 +36,11 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 @Provider
 public class EventNotificationExceptionMapper implements ExceptionMapper<Throwable> {
 
-    private static final Log log = LogFactory.getLog(EventNotificationExceptionMapper.class);
+    private static final Log LOG = LogFactory.getLog(EventNotificationExceptionMapper.class);
 
     @Override
     public Response toResponse(Throwable exception) {
@@ -67,27 +68,33 @@ public class EventNotificationExceptionMapper implements ExceptionMapper<Throwab
         }
 
         if (rootCause instanceof IllegalArgumentException) {
-            log.warn("Invalid request argument: " + rootCause.getMessage());
-            return buildResponse(Response.Status.BAD_REQUEST.getStatusCode(), "CS-4002", "Invalid request parameter", rootCause.getMessage());
+            LOG.debug("Invalid request argument.", rootCause);
+            return buildResponse(Response.Status.BAD_REQUEST.getStatusCode(),
+                    EventNotificationEndpointErrorCodes.ERROR_CODE_INVALID_PARAMETER, "Invalid request parameter",
+                    null);
         }
 
-        log.error("Unhandled exception in Event Notification endpoint", exception);
-        return buildResponse(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), "CS-5000", "Internal server error", "An unexpected error occurred.");
+        LOG.error("Unhandled exception in Event Notification endpoint", exception);
+        return buildResponse(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+                EventNotificationEndpointErrorCodes.ERROR_CODE_INTERNAL_ERROR, "Internal server error",
+                "An unexpected error occurred.");
     }
 
     private Response handleEventNotificationException(EventNotificationException ex) {
         if (ex.getStatusCode() >= 500) {
-            log.error("Service error [" + ex.getCode() + "]: " + ex.getMessage(), ex);
+            LOG.error("Service error [" + sanitize(ex.getCode()) + "]: " + sanitize(ex.getMessage()), ex);
         } else {
-            log.warn("Service error [" + ex.getCode() + "]: " + ex.getMessage());
+            LOG.debug("Service error [" + sanitize(ex.getCode()) + "]: " + sanitize(ex.getMessage()), ex);
         }
         return buildResponse(ex.getStatusCode(), ex.getCode(), ex.getMessage(), ex.getDescription());
     }
 
     private Response handleWebApplicationException(WebApplicationException wae) {
         int status = wae.getResponse().getStatus();
-        log.warn("JAX-RS exception [" + status + "]: " + wae.getMessage());
-        return buildResponse(status, "CS-" + status, wae.getMessage() != null ? wae.getMessage() : Response.Status.fromStatusCode(status).getReasonPhrase(), null);
+        LOG.debug("JAX-RS exception [" + status + "]: " + sanitize(wae.getMessage()), wae);
+        return buildResponse(status, EventNotificationEndpointErrorCodes.ERROR_CODE_FRAMEWORK_ERROR,
+                wae.getMessage() != null ? wae.getMessage() : Response.Status.fromStatusCode(status).getReasonPhrase(),
+                null);
     }
 
     private Response handleConstraintViolation(ConstraintViolationException cve) {
@@ -96,8 +103,10 @@ public class EventNotificationExceptionMapper implements ExceptionMapper<Throwab
                 .reduce((a, b) -> a + "; " + b)
                 .orElse(cve.getMessage());
 
-        log.warn("Validation failure: " + detail);
-        return buildResponse(Response.Status.BAD_REQUEST.getStatusCode(), "CS-4003", "Request failed validation", detail);
+        LOG.debug("Validation failure: " + sanitize(detail), cve);
+        return buildResponse(Response.Status.BAD_REQUEST.getStatusCode(),
+                EventNotificationEndpointErrorCodes.ERROR_CODE_VALIDATION_FAILED, "Request failed validation",
+                detail);
     }
 
     private Response handleJsonProcessingException(JsonProcessingException jpe) {
@@ -107,8 +116,10 @@ public class EventNotificationExceptionMapper implements ExceptionMapper<Throwab
             detail = "Unrecognized field '" + upe.getPropertyName() + "' in request payload.";
         }
 
-        log.warn("Malformed request payload: " + detail);
-        return buildResponse(Response.Status.BAD_REQUEST.getStatusCode(), "CS-4001", "Malformed request payload", detail);
+        LOG.debug("Malformed request payload: " + sanitize(detail), jpe);
+        return buildResponse(Response.Status.BAD_REQUEST.getStatusCode(),
+                EventNotificationEndpointErrorCodes.ERROR_CODE_MALFORMED_PAYLOAD, "Malformed request payload",
+                detail);
     }
 
     private Response buildResponse(int status, String code, String message, String description) {
@@ -142,5 +153,10 @@ public class EventNotificationExceptionMapper implements ExceptionMapper<Throwab
             current = current.getCause();
         }
         return current != null ? current : exception;
+    }
+
+    private static String sanitize(String value) {
+
+        return value == null ? null : value.replaceAll("[\r\n]", "");
     }
 }

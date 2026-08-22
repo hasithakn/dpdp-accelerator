@@ -18,9 +18,11 @@
 
 package org.wso2.dpdp.accelerator.event.notifications.endpoint.api;
 
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedTopicResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.TopicDTO;
 import org.wso2.dpdp.accelerator.event.notifications.endpoint.handler.TopicHandler;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.TopicDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.model.PaginatedResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.util.EventNotificationDtoMapper;
+import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
 import org.wso2.dpdp.accelerator.common.util.DPDPTenantContext;
 
 import javax.ws.rs.Consumes;
@@ -53,7 +55,9 @@ public class TopicEndpoint {
 
     @POST
     public Response createTopic(TopicDTO request) {
-        TopicDTO dto = topicHandler.createTopic(DPDPTenantContext.getOrganizationId(), request);
+        TopicDTO dto = EventNotificationDtoMapper.toDto(
+                topicHandler.createTopic(DPDPTenantContext.getOrganizationId(),
+                        EventNotificationDtoMapper.toServiceDto(request)));
         return Response.status(Response.Status.CREATED).entity(dto).build();
     }
 
@@ -61,11 +65,11 @@ public class TopicEndpoint {
     public Response listTopics(
             @QueryParam("status") String status,
             @QueryParam("search") String search,
-            @QueryParam("limit") @DefaultValue("20") int limit,
-            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue(EventNotificationCommonConstants.DEFAULT_LIMIT_STR) int limit,
+            @QueryParam("offset") @DefaultValue(EventNotificationCommonConstants.DEFAULT_OFFSET_STR) int offset,
             @QueryParam("sort") String sort) {
-        PaginatedResult<TopicDTO> result = topicHandler.listTopics(DPDPTenantContext.getOrganizationId(), status,
-                search, limit, offset, sort);
+        PaginatedTopicResult result = EventNotificationDtoMapper.toDto(
+                topicHandler.listTopics(DPDPTenantContext.getOrganizationId(), status, search, limit, offset, sort));
         return Response.ok(result).build();
     }
 
@@ -73,7 +77,8 @@ public class TopicEndpoint {
     @Path("/{topicId}")
     public Response deleteTopic(
             @PathParam("topicId") String topicId) {
-        TopicDTO dto = topicHandler.deleteTopic(DPDPTenantContext.getOrganizationId(), topicId);
+        TopicDTO dto = EventNotificationDtoMapper.toDto(
+                topicHandler.deleteTopic(DPDPTenantContext.getOrganizationId(), topicId));
         return Response.ok(dto).build();
     }
 }

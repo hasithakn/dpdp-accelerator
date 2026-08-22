@@ -88,6 +88,25 @@
             <artifactId>slf4j-jdk14</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- DPDPConfigParser (reached indirectly via DBUtils -> DPDPPersistenceManager, e.g. in
+             EventPublishServiceImpl's real-connection attempt) needs these on the classpath to
+             even load; they're "provided" scope on org.wso2.dpdp.accelerator.common and don't
+             propagate transitively, so tests that exercise that path need them locally too. -->
+        <dependency>
+            <groupId>org.wso2.carbon</groupId>
+            <artifactId>org.wso2.carbon.utils</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ws.commons.axiom.wso2</groupId>
+            <artifactId>axiom</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.securevault</groupId>
+            <artifactId>org.wso2.securevault</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -159,6 +178,7 @@
                         </Export-Package>
                         <Import-Package>
                             org.wso2.dpdp.accelerator.common.config;version="${project.version}",
+                            org.wso2.dpdp.accelerator.common.util;version="${project.version}",
                             org.wso2.dpdp.accelerator.event.notifications.common.*;version="${project.version}",
                             org.wso2.dpdp.accelerator.event.notifications.dao.*;version="${project.version}",
                             org.osgi.framework;version="[1.8,2)",

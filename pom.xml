@@ -186,6 +186,14 @@
                 <version>${javax.validation.api.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <!-- Annotates generated DTOs (io.swagger.annotations.ApiModelProperty) - not part of
+                 <IS_HOME>/lib/runtimes/cxf3/, so unlike the dependency above this one is bundled
+                 into the WAR rather than provided by the container. -->
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger.annotations.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
@@ -215,6 +223,18 @@
                 <artifactId>org.wso2.carbon.utils</artifactId>
                 <version>${carbon.kernel.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <!-- org.wso2.carbon.utils -> org.wso2.carbon.base -> org.wso2.securevault:1.2.0
+                         directly depends on the vanilla, un-forked org.ops4j.pax.logging:pax-logging-api
+                         1.10.1, alongside the correct org.wso2.org.ops4j.pax.logging:pax-logging-api
+                         (a different groupId) pulled in elsewhere under carbon.utils. Both jars provide
+                         org.ops4j.pax.logging.PaxLogger with different method signatures, so whichever
+                         loads first can shadow the other with NoSuchMethodError at runtime. -->
+                    <exclusion>
+                        <groupId>org.ops4j.pax.logging</groupId>
+                        <artifactId>pax-logging-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <!-- Shared across components/ modules - declared once here so a module's own
@@ -322,6 +342,21 @@
                 <artifactId>org.wso2.securevault</artifactId>
                 <version>${securevault.version}</version>
                 <scope>provided</scope>
+                <exclusions>
+                    <!-- org.wso2.securevault:1.2.0 directly depends on the vanilla, un-forked
+                         org.ops4j.pax.logging:pax-logging-api 1.10.1, alongside the correct
+                         org.wso2.org.ops4j.pax.logging:pax-logging-api (a different groupId)
+                         pulled in elsewhere. Both jars provide org.ops4j.pax.logging.PaxLogger
+                         with different method signatures, so whichever loads first can shadow
+                         the other with NoSuchMethodError at runtime. Same fix as the
+                         org.wso2.carbon.utils entry above, needed here too since a module can
+                         depend on securevault directly rather than only transitively through
+                         carbon.utils. -->
+                    <exclusion>
+                        <groupId>org.ops4j.pax.logging</groupId>
+                        <artifactId>pax-logging-api</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -343,6 +378,16 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${exec.maven.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${build.helper.maven.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.openapitools</groupId>
+                    <artifactId>openapi-generator-maven-plugin</artifactId>
+                    <version>${openapi.generator.plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -437,6 +482,14 @@
         <maven.clean.plugin.version>3.1.0</maven.clean.plugin.version>
         <spotbugs.maven.plugin.version>4.8.2.0</spotbugs.maven.plugin.version>
         <findsecbugs.plugin.version>1.12.0</findsecbugs.plugin.version>
+        <build.helper.maven.plugin.version>3.5.0</build.helper.maven.plugin.version>
+        <openapi.generator.plugin.version>6.6.0</openapi.generator.plugin.version>
+        <swagger.annotations.version>1.6.14</swagger.annotations.version>
+
+        <!-- Set to false (e.g. -Ddpdp.dto.codegen.skip=false) to regenerate a webapp's DTOs
+             from its OpenAPI spec, then set back to true and commit the result. Off by default
+             so a normal build doesn't regenerate on every run. -->
+        <dpdp.dto.codegen.skip>true</dpdp.dto.codegen.skip>
 
         <npm.executable>npm</npm.executable>
     </properties>

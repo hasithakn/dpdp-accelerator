@@ -142,4 +142,65 @@ public final class DPDPConfigParser {
         return getConfigurationAsString(DPDPCommonConstants.CONSENT_PORTAL_CLIENT_ID)
                 .orElse("DPDP_CONSENT_PORTAL");
     }
+
+    public int getEventNotificationThreadPoolSize() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_THREAD_POOL_SIZE)
+                .map(Integer::parseInt).orElse(4);
+    }
+
+    public long getEventNotificationBaseBackoffSeconds() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_BASE_BACKOFF_SECONDS)
+                .map(Long::parseLong).orElse(5L);
+    }
+
+    public int getEventNotificationMaxRetries() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_MAX_RETRIES)
+                .map(Integer::parseInt).orElse(5);
+    }
+
+    public boolean isEventNotificationHttpCallbackUrlAllowed() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_ALLOW_HTTP_CALLBACK_URL)
+                .map(Boolean::parseBoolean).orElse(true);
+    }
+
+    public int getEventNotificationDeliveryWorkerBatchSize() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_DELIVERY_WORKER_BATCH_SIZE)
+                .map(Integer::parseInt).orElse(50);
+    }
+
+    public int getEventNotificationDeliveryWorkerPollSeconds() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_DELIVERY_WORKER_POLL_SECONDS)
+                .map(Integer::parseInt).orElse(5);
+    }
+
+    public int getEventNotificationStuckInFlightThresholdSeconds() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_STUCK_INFLIGHT_THRESHOLD_SECONDS)
+                .map(Integer::parseInt).orElse(10);
+    }
+
+    public int getEventNotificationMaxVerificationResponseBodyBytes() {
+
+        return getConfigurationAsString(DPDPCommonConstants.EVENT_NOTIFICATIONS_MAX_VERIFICATION_RESPONSE_BODY_BYTES)
+                .map(Integer::parseInt).orElse(4096);
+    }
+
+    public int getEventNotificationPendingSubscriptionRecoveryThresholdSeconds() {
+
+        return getConfigurationAsString(
+                DPDPCommonConstants.EVENT_NOTIFICATIONS_PENDING_SUBSCRIPTION_RECOVERY_THRESHOLD_SECONDS)
+                .map(Integer::parseInt).orElse(60);
+    }
+
+    public String getDatabaseDataSourceName() {
+
+        return getConfigurationAsString(DPDPCommonConstants.DATABASE_DATA_SOURCE_NAME)
+                .orElse(DPDPCommonConstants.DEFAULT_DATABASE_DATA_SOURCE_NAME);
+    }
 }

@@ -18,13 +18,14 @@
 
 package org.wso2.dpdp.accelerator.event.notifications.dao.impl;
 
+import org.wso2.dpdp.accelerator.event.notifications.dao.constants.EventNotificationDBColumns;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.wso2.dpdp.accelerator.common.config.DPDPConfigurationService;
 import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
 import org.wso2.dpdp.accelerator.event.notifications.common.enums.PollStatus;
 import org.wso2.dpdp.accelerator.event.notifications.common.exception.EventNotificationDataAccessException;
-import org.wso2.dpdp.accelerator.event.notifications.common.util.DBUtils;
+import org.wso2.dpdp.accelerator.common.util.DBUtils;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.PollDelivery;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.SubscriptionDeliverySummary;
@@ -97,15 +98,15 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(new WebhookDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getInt("ATTEMPT_COUNT"),
-                            rs.getTimestamp("NEXT_RETRY_AT"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getTimestamp("DELIVERED_AT")));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getInt(EventNotificationDBColumns.ATTEMPT_COUNT),
+                            rs.getTimestamp(EventNotificationDBColumns.NEXT_RETRY_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.DELIVERED_AT)));
                 }
             }
             return Optional.empty();
@@ -124,15 +125,15 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(new WebhookDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getInt("ATTEMPT_COUNT"),
-                            rs.getTimestamp("NEXT_RETRY_AT"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getTimestamp("DELIVERED_AT")));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getInt(EventNotificationDBColumns.ATTEMPT_COUNT),
+                            rs.getTimestamp(EventNotificationDBColumns.NEXT_RETRY_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.DELIVERED_AT)));
                 }
             }
             return list;
@@ -167,24 +168,24 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     WebhookDelivery delivery = new WebhookDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getInt("ATTEMPT_COUNT"),
-                            rs.getTimestamp("NEXT_RETRY_AT"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getTimestamp("DELIVERED_AT"));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getInt(EventNotificationDBColumns.ATTEMPT_COUNT),
+                            rs.getTimestamp(EventNotificationDBColumns.NEXT_RETRY_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.DELIVERED_AT));
                     list.add(new WebhookDeliveryDispatchContext(
                             delivery,
-                            rs.getString("ORG_ID"),
-                            rs.getString("CALLBACK_URL"),
-                            rs.getString("SHARED_SECRET"),
-                            rs.getString("PAYLOAD"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getString("TOPIC_ID"),
-                            rs.getString("TOPIC_NAME")));
+                            rs.getString(EventNotificationDBColumns.ORG_ID),
+                            rs.getString(EventNotificationDBColumns.CALLBACK_URL),
+                            rs.getString(EventNotificationDBColumns.SHARED_SECRET),
+                            rs.getString(EventNotificationDBColumns.PAYLOAD),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getString(EventNotificationDBColumns.TOPIC_ID),
+                            rs.getString(EventNotificationDBColumns.TOPIC_NAME)));
                 }
             }
             return list;
@@ -203,24 +204,24 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     WebhookDelivery delivery = new WebhookDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getInt("ATTEMPT_COUNT"),
-                            rs.getTimestamp("NEXT_RETRY_AT"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getTimestamp("DELIVERED_AT"));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getInt(EventNotificationDBColumns.ATTEMPT_COUNT),
+                            rs.getTimestamp(EventNotificationDBColumns.NEXT_RETRY_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.DELIVERED_AT));
                     list.add(new WebhookDeliveryDispatchContext(
                             delivery,
-                            rs.getString("ORG_ID"),
-                            rs.getString("CALLBACK_URL"),
-                            rs.getString("SHARED_SECRET"),
-                            rs.getString("PAYLOAD"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getString("TOPIC_ID"),
-                            rs.getString("TOPIC_NAME")));
+                            rs.getString(EventNotificationDBColumns.ORG_ID),
+                            rs.getString(EventNotificationDBColumns.CALLBACK_URL),
+                            rs.getString(EventNotificationDBColumns.SHARED_SECRET),
+                            rs.getString(EventNotificationDBColumns.PAYLOAD),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getString(EventNotificationDBColumns.TOPIC_ID),
+                            rs.getString(EventNotificationDBColumns.TOPIC_NAME)));
                 }
             }
             return list;
@@ -387,13 +388,13 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(new WebhookDeliveryAudit(
-                            rs.getString("AUDIT_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("ORG_ID"),
-                            rs.getString("RESPONSE_CODE"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("ATTEMPT_AT")));
+                            rs.getString(EventNotificationDBColumns.AUDIT_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.ORG_ID),
+                            rs.getString(EventNotificationDBColumns.RESPONSE_CODE),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.ATTEMPT_AT)));
                 }
             }
             return list;
@@ -432,12 +433,12 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(new PollDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("COMPLETED_AT")));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.COMPLETED_AT)));
                 }
             }
             return Optional.empty();
@@ -465,15 +466,15 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(new WebhookDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getInt("ATTEMPT_COUNT"),
-                            rs.getTimestamp("NEXT_RETRY_AT"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("UPDATED_AT"),
-                            rs.getTimestamp("DELIVERED_AT")));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getInt(EventNotificationDBColumns.ATTEMPT_COUNT),
+                            rs.getTimestamp(EventNotificationDBColumns.NEXT_RETRY_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.UPDATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.DELIVERED_AT)));
                 }
             }
             return list;
@@ -494,12 +495,12 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     candidates.add(new PollDelivery(
-                            rs.getString("DELIVERY_ID"),
-                            rs.getString("SUBSCRIPTION_ID"),
-                            rs.getString("EVENT_ID"),
-                            rs.getString("STATUS"),
-                            rs.getTimestamp("CREATED_AT"),
-                            rs.getTimestamp("COMPLETED_AT")));
+                            rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                            rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                            rs.getString(EventNotificationDBColumns.EVENT_ID),
+                            rs.getString(EventNotificationDBColumns.STATUS),
+                            rs.getTimestamp(EventNotificationDBColumns.CREATED_AT),
+                            rs.getTimestamp(EventNotificationDBColumns.COMPLETED_AT)));
                 }
             }
             return candidates;
@@ -848,7 +849,7 @@ public class DeliveryDAOImpl implements DeliveryDAO {
             ps.setString(1, eventId.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.ofNullable(rs.getString("PAYLOAD"));
+                    return Optional.ofNullable(rs.getString(EventNotificationDBColumns.PAYLOAD));
                 }
             }
             return Optional.empty();
@@ -938,16 +939,16 @@ public class DeliveryDAOImpl implements DeliveryDAO {
 
     private SubscriptionDeliverySummary mapSummary(ResultSet rs) throws SQLException {
         return new SubscriptionDeliverySummary(
-                rs.getString("DELIVERY_ID"),
-                rs.getString("EVENT_ID"),
-                rs.getString("SUBSCRIPTION_ID"),
-                rs.getString("GROUP_ID"),
-                rs.getString("TOPIC_NAME"),
-                rs.getString("CURRENT_STATUS"),
-                rs.getString("DELIVERY_MODE"),
-                rs.getTimestamp("OCCURRED_AT"),
-                rs.getTimestamp("DELIVERY_CREATED_AT"),
-                rs.getString("PAYLOAD"));
+                rs.getString(EventNotificationDBColumns.DELIVERY_ID),
+                rs.getString(EventNotificationDBColumns.EVENT_ID),
+                rs.getString(EventNotificationDBColumns.SUBSCRIPTION_ID),
+                rs.getString(EventNotificationDBColumns.GROUP_ID),
+                rs.getString(EventNotificationDBColumns.TOPIC_NAME),
+                rs.getString(EventNotificationDBColumns.CURRENT_STATUS),
+                rs.getString(EventNotificationDBColumns.DELIVERY_MODE),
+                rs.getTimestamp(EventNotificationDBColumns.OCCURRED_AT),
+                rs.getTimestamp(EventNotificationDBColumns.DELIVERY_CREATED_AT),
+                rs.getString(EventNotificationDBColumns.PAYLOAD));
     }
 
     private DPDPConfigurationService getConfiguration() {

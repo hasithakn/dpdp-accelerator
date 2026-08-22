@@ -25,13 +25,13 @@ import org.wso2.dpdp.accelerator.event.notifications.common.util.HmacSigner;
 import org.wso2.dpdp.accelerator.event.notifications.dao.DeliveryDAO;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.WebhookDelivery;
 import org.wso2.dpdp.accelerator.event.notifications.dao.model.WebhookDeliveryAudit;
+import org.wso2.dpdp.accelerator.event.notifications.service.constants.EventNotificationServiceConstants;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -69,7 +69,6 @@ public class WebhookDeliveryTask implements Runnable {
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String CONTENT_TYPE_JSON = "application/json";
     private static final String RESPONSE_CODE_EXCEPTION = "EXCEPTION";
-    private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(5);
 
     // ObjectMapper is thread-safe for serialization after construction (Jackson docs guarantee
     // this). Sharing a single static instance avoids the overhead of instantiating a new mapper
@@ -119,8 +118,8 @@ public class WebhookDeliveryTask implements Runnable {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            LOG.warn("Webhook delivery attempt failed for delivery ["
-                    + delivery.getDeliveryId() + "]: " + e.getMessage(), e);
+            LOG.debug("Webhook delivery attempt failed for delivery ["
+                    + delivery.getDeliveryId() + "]: " + sanitize(e.getMessage()), e);
             recordFailure(RESPONSE_CODE_EXCEPTION, null);
             return;
         }
@@ -149,7 +148,7 @@ public class WebhookDeliveryTask implements Runnable {
         String envelope = buildEnvelope();
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(callbackUrl))
-                .timeout(HTTP_TIMEOUT)
+                .timeout(EventNotificationServiceConstants.OUTBOUND_HTTP_TIMEOUT)
                 .header(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON)
                 .header(DELIVERY_ID_HEADER, delivery.getDeliveryId())
                 .POST(HttpRequest.BodyPublishers.ofString(envelope));
@@ -189,8 +188,8 @@ public class WebhookDeliveryTask implements Runnable {
             try {
                 parsed = ENVELOPE_MAPPER.readTree(payload);
             } catch (Exception parseFailure) {
-                LOG.warn("Event payload for delivery [" + delivery.getDeliveryId()
-                        + "] was not parseable JSON; sending empty object under \"payload\".");
+                LOG.debug("Event payload for delivery [" + delivery.getDeliveryId()
+                        + "] was not parseable JSON; sending empty object under \"payload\".", parseFailure);
             }
             // readTree returns NullNode for the literal string "null"; coerce to {} so the
             // envelope still carries an object under "payload".
@@ -221,15 +220,15 @@ public class WebhookDeliveryTask implements Runnable {
         try {
             boolean recorded = deliveryDAO.recordSuccessfulAttempt(audit, updated);
             if (recorded) {
-                LOG.info("Webhook delivered [delivery=" + delivery.getDeliveryId() + ", event="
-                        + delivery.getEventId() + ", topic=" + topicName + ", attempt="
+                LOG.debug("Webhook delivered [delivery=" + delivery.getDeliveryId() + ", event="
+                        + delivery.getEventId() + ", topic=" + sanitize(topicName) + ", attempt="
                         + updated.getAttemptCount() + ", status=" + httpStatus + "].");
             } else {
-                LOG.warn("recordSuccessfulAttempt returned false for delivery [" + delivery.getDeliveryId() + "].");
+                LOG.debug("recordSuccessfulAttempt returned false for delivery [" + delivery.getDeliveryId() + "].");
             }
         } catch (Exception e) {
-            LOG.warn("Failed to record successful attempt for delivery [" + delivery.getDeliveryId()
-                    + "]: " + e.getMessage(), e);
+            LOG.error("Failed to record successful attempt for delivery [" + delivery.getDeliveryId()
+                    + "]: " + sanitize(e.getMessage()), e);
         }
     }
 
@@ -251,23 +250,23 @@ public class WebhookDeliveryTask implements Runnable {
                     null);
             try {
                 deliveryDAO.recordPermanentFailure(audit, failed);
-                LOG.warn("Webhook delivery [" + delivery.getDeliveryId() + "] exhausted "
+                LOG.debug("Webhook delivery [" + delivery.getDeliveryId() + "] exhausted "
                         + maxRetries + " attempts; marked as failed (last response=" + responseCode + ").");
             } catch (Exception e) {
                 LOG.error("Failed to mark delivery [" + delivery.getDeliveryId()
-                        + "] as failed: " + e.getMessage(), e);
+                        + "] as failed: " + sanitize(e.getMessage()), e);
             }
             return;
         }
 
         long baseBackoffSeconds = configurationService.getEventNotificationBaseBackoffSeconds();
-        long delaySeconds = baseBackoffSeconds * (long) Math.pow(3, newAttempt - 1);
+        long delaySeconds = baseBackoffSeconds * (long) Math.pow(EventNotificationServiceConstants.RETRY_BACKOFF_MULTIPLIER, newAttempt - 1);
         Timestamp nextRetryAt = new Timestamp(now.getTime() + delaySeconds * 1000L);
 
         try {
             boolean released = deliveryDAO.recordRetryableFailure(audit, delivery.getDeliveryId(), newAttempt, nextRetryAt);
             if (released) {
-                LOG.info("Webhook delivery [" + delivery.getDeliveryId() + "] attempt " + newAttempt
+                LOG.debug("Webhook delivery [" + delivery.getDeliveryId() + "] attempt " + newAttempt
                         + " failed (response=" + responseCode + "); next retry at " + nextRetryAt
                         + " (~" + delaySeconds + "s).");
             } else {
@@ -278,7 +277,7 @@ public class WebhookDeliveryTask implements Runnable {
             }
         } catch (Exception e) {
             LOG.error("Failed to release webhook delivery [" + delivery.getDeliveryId()
-                    + "] for retry: " + e.getMessage(), e);
+                    + "] for retry: " + sanitize(e.getMessage()), e);
         }
     }
 
@@ -291,5 +290,9 @@ public class WebhookDeliveryTask implements Runnable {
                 responseCode,
                 now,
                 now);
+    }
+
+    private static String sanitize(String value) {
+        return value == null ? null : value.replaceAll("[\r\n]", "");
     }
 }

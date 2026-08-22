@@ -28,6 +28,10 @@ public final class DPDPCommonConstants {
     public static final String CONSENT_PORTAL_AUTO_PROVISIONING_ENABLED = "ConsentPortal.AutoProvisioningEnabled";
     public static final String CONSENT_PORTAL_CLIENT_ID = "ConsentPortal.ClientId";
 
+    // Shared by every dpdp-accelerator table, across all features - not feature-specific.
+    public static final String DATABASE_DATA_SOURCE_NAME = "Database.DataSourceName";
+    public static final String DEFAULT_DATABASE_DATA_SOURCE_NAME = "jdbc/WSO2DPDP_DB";
+
     public static final String EVENT_NOTIFICATIONS_THREAD_POOL_SIZE = "EventNotifications.ThreadPoolSize";
     public static final String EVENT_NOTIFICATIONS_BASE_BACKOFF_SECONDS = "EventNotifications.BaseBackoffSeconds";
     public static final String EVENT_NOTIFICATIONS_MAX_RETRIES = "EventNotifications.MaxRetries";

@@ -19,6 +19,7 @@
 package org.wso2.dpdp.accelerator.event.notifications.service.impl;
 
 import org.mockito.ArgumentCaptor;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.dpdp.accelerator.event.notifications.common.enums.PurposeFilterMode;
@@ -54,6 +55,15 @@ public class EventFanOutServiceImplTest {
     private SubscriptionDAO subscriptionDAO;
     private DeliveryDAO deliveryDAO;
     private EventFanOutServiceImpl fanOutService;
+
+    @BeforeClass
+    public void enableDebugLogging() {
+        // Commons Logging resolves to the JDK14 (java.util.logging) adapter in tests, whose
+        // default level suppresses DEBUG - raise it so the debug-guarded log lines this test
+        // exercises (e.g. the successful-queue path) actually run and stay covered.
+        java.util.logging.Logger.getLogger(EventFanOutServiceImpl.class.getName())
+                .setLevel(java.util.logging.Level.FINE);
+    }
 
     @BeforeMethod
     public void setUp() {

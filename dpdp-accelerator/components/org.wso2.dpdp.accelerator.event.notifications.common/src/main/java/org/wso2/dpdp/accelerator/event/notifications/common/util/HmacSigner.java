@@ -1,13 +1,13 @@
-/**
+/*
  * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
- * <p>
+ *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -25,7 +25,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Computes HMAC-SHA256 signatures used to authenticate outbound webhook payloads.
+ * Computes HMAC-SHA256 signatures used to authenticate outbound payloads (e.g. webhook
+ * deliveries).
  *
  * <p>Subscribers verify the {@code Event-Signature} header on incoming POSTs by recomputing
  * {@code HMAC-SHA256(sharedSecret, payload)} and comparing it to the header value. Returning a
@@ -63,7 +64,7 @@ public final class HmacSigner {
             // key material; neither branch is reachable in practice on a JDK that supports
             // outbound HTTPS. Surface as a runtime exception rather than swallowing.
             throw new IllegalStateException(
-                    "Unable to compute HMAC-SHA256 signature for webhook payload.", e);
+                    "Unable to compute HMAC-SHA256 signature for outbound payload.", e);
         }
     }
 

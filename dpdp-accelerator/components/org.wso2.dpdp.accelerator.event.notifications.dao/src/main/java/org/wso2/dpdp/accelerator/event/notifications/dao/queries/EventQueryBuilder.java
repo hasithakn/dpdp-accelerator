@@ -65,16 +65,10 @@ public class EventQueryBuilder {
 
     /**
      * Escapes characters that have special meaning inside a SQL LIKE pattern
-     * so user input is treated as literal text. Mirrors the helper on
-     * {@link SubscriptionQueryBuilder}.
+     * so user input is treated as literal text.
      */
     public static String escapeLikePattern(String text) {
-        if (text == null) {
-            return "";
-        }
-        return text.replace("\\", "\\\\")
-                   .replace("%", "\\%")
-                   .replace("_", "\\_");
+        return SubscriptionQueryBuilder.escapeLikePattern(text);
     }
 
     /**
@@ -150,23 +144,5 @@ public class EventQueryBuilder {
             params.add(term);
         }
         return params;
-    }
-
-    public static class QueryResult {
-        private final String sql;
-        private final List<Object> parameters;
-
-        public QueryResult(String sql, List<Object> parameters) {
-            this.sql = sql;
-            this.parameters = parameters;
-        }
-
-        public String getSql() {
-            return sql;
-        }
-
-        public List<Object> getParameters() {
-            return parameters;
-        }
     }
 }

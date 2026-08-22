@@ -183,6 +183,11 @@ custom_webapps = [
 auto_provisioning_enabled = true
 client_id = "DPDP_CONSENT_PORTAL"
 
+# The single JNDI datasource shared by every dpdp-accelerator table, across all features -
+# must match the [datasource.*] id defined above.
+[dpdp_accelerator.database]
+data_source_name = "jdbc/WSO2DPDP_DB"
+
 # Event Notification Framework runtime settings.
 [dpdp_accelerator.event_notifications]
 thread_pool_size = 4

@@ -22,8 +22,10 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.dpdp.accelerator.event.notifications.service.exception.EventNotificationException;
 
+import javax.validation.ConstraintViolationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.testng.Assert.assertEquals;
@@ -41,7 +43,7 @@ public class EventNotificationExceptionMapperTest {
 
     @Test
     public void testToResponseNotFoundException() {
-        EventNotificationException ex = new EventNotificationException("CS-4040", "Resource not found", "Topic ID not found.", 404);
+        EventNotificationException ex = new EventNotificationException("EN-4040", "Resource not found", "Topic ID not found.", 404);
         Response response = mapper.toResponse(ex);
 
         assertNotNull(response);
@@ -51,14 +53,14 @@ public class EventNotificationExceptionMapperTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> entity = (Map<String, Object>) response.getEntity();
         assertNotNull(entity);
-        assertEquals(entity.get("code"), "CS-4040");
+        assertEquals(entity.get("code"), "EN-4040");
         assertEquals(entity.get("message"), "Resource not found");
         assertEquals(entity.get("description"), "Topic ID not found.");
     }
 
     @Test
     public void testToResponseConflictException() {
-        EventNotificationException ex = new EventNotificationException("CS-4090", "Topic already exists", "Topic name conflict.", 409);
+        EventNotificationException ex = new EventNotificationException("EN-4090", "Topic already exists", "Topic name conflict.", 409);
         Response response = mapper.toResponse(ex);
 
         assertNotNull(response);
@@ -68,10 +70,37 @@ public class EventNotificationExceptionMapperTest {
 
     @Test
     public void testToResponseValidationException() {
-        EventNotificationException ex = new EventNotificationException("CS-4001", "Malformed request", "Org ID required.", 400);
+        EventNotificationException ex = new EventNotificationException("EN-4001", "Malformed request", "Org ID required.", 400);
         Response response = mapper.toResponse(ex);
 
         assertNotNull(response);
         assertEquals(response.getStatus(), 400);
+    }
+
+    @Test
+    public void testToResponseIllegalArgumentExceptionUsesEndpointOwnCode() {
+        Response response = mapper.toResponse(new IllegalArgumentException("bad param"));
+
+        assertEquals(response.getStatus(), 400);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entity = (Map<String, Object>) response.getEntity();
+        // Regression guard: this must be the endpoint's own EN-* code, not a literal that
+        // happens to collide with a service-layer CS-* code meaning something else.
+        assertEquals(entity.get("code"), "EN-00002");
+        // The raw exception message must not leak into the response.
+        assertEquals(entity.get("message"), "Invalid request parameter");
+    }
+
+    @Test
+    public void testToResponseConstraintViolationExceptionUsesEndpointOwnCode() {
+        ConstraintViolationException cve = new ConstraintViolationException(Collections.emptySet());
+        Response response = mapper.toResponse(cve);
+
+        assertEquals(response.getStatus(), 400);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> entity = (Map<String, Object>) response.getEntity();
+        // Regression guard: "EN-4003" is also EventNotificationServiceConstants.ERROR_CODE_INVALID_STATE
+        // (a 409 for invalid subscription-state transitions) - this must not collide with it.
+        assertEquals(entity.get("code"), "EN-00003");
     }
 }

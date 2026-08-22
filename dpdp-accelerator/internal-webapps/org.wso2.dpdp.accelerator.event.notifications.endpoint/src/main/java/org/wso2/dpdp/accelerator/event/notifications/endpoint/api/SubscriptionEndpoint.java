@@ -18,11 +18,13 @@
 
 package org.wso2.dpdp.accelerator.event.notifications.endpoint.api;
 
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedSubscriptionDeliveryResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.PaginatedSubscriptionResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.SubscriptionDTO;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.dto.SubscriptionEventHistoryDTO;
 import org.wso2.dpdp.accelerator.event.notifications.endpoint.handler.SubscriptionHandler;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionDeliveryDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.dto.SubscriptionEventHistoryDTO;
-import org.wso2.dpdp.accelerator.event.notifications.service.model.PaginatedResult;
+import org.wso2.dpdp.accelerator.event.notifications.endpoint.util.EventNotificationDtoMapper;
+import org.wso2.dpdp.accelerator.event.notifications.common.constants.EventNotificationCommonConstants;
 import org.wso2.dpdp.accelerator.common.util.DPDPTenantContext;
 
 import javax.ws.rs.Consumes;
@@ -53,12 +55,16 @@ public class SubscriptionEndpoint {
         this.subscriptionHandler = subscriptionHandler;
     }
 
+    // TODO: headerGroupId is currently discarded - SubscriptionHandler.createSubscription
+    // always derives groupId from orgId instead of honoring a caller-supplied group. Revisit
+    // whether this header should actually be threaded through.
     @POST
     public Response createSubscription(
-            @HeaderParam("group-id") String headerGroupId,
+            @HeaderParam(EventNotificationCommonConstants.GROUP_ID_HEADER) String headerGroupId,
             SubscriptionDTO request) {
         String orgId = DPDPTenantContext.getOrganizationId();
-        SubscriptionDTO dto = subscriptionHandler.createSubscription(orgId, request);
+        SubscriptionDTO dto = EventNotificationDtoMapper.toDto(
+                subscriptionHandler.createSubscription(orgId, EventNotificationDtoMapper.toServiceDto(request)));
         return Response.status(Response.Status.CREATED).entity(dto).build();
     }
 
@@ -67,11 +73,12 @@ public class SubscriptionEndpoint {
             @QueryParam("status") String status,
             @QueryParam("purposes") String purposes,
             @QueryParam("search") String search,
-            @QueryParam("limit") @DefaultValue("20") int limit,
-            @QueryParam("offset") @DefaultValue("0") int offset,
+            @QueryParam("limit") @DefaultValue(EventNotificationCommonConstants.DEFAULT_LIMIT_STR) int limit,
+            @QueryParam("offset") @DefaultValue(EventNotificationCommonConstants.DEFAULT_OFFSET_STR) int offset,
             @QueryParam("sort") String sort) {
-        PaginatedResult<SubscriptionDTO> result = subscriptionHandler.listSubscriptions(
-                DPDPTenantContext.getOrganizationId(), status, purposes, search, limit, offset, sort);
+        PaginatedSubscriptionResult result = EventNotificationDtoMapper.toSubscriptionResultDto(
+                subscriptionHandler.listSubscriptions(
+                        DPDPTenantContext.getOrganizationId(), status, purposes, search, limit, offset, sort));
         return Response.ok(result).build();
     }
 
@@ -79,7 +86,8 @@ public class SubscriptionEndpoint {
     @Path("/{subscriptionId}")
     public Response getSubscription(
             @PathParam("subscriptionId") String subscriptionId) {
-        SubscriptionDTO dto = subscriptionHandler.getSubscription(DPDPTenantContext.getOrganizationId(), subscriptionId);
+        SubscriptionDTO dto = EventNotificationDtoMapper.toDto(
+                subscriptionHandler.getSubscription(DPDPTenantContext.getOrganizationId(), subscriptionId));
         return Response.ok(dto).build();
     }
 
@@ -87,7 +95,8 @@ public class SubscriptionEndpoint {
     @Path("/{subscriptionId}")
     public Response deleteSubscription(
             @PathParam("subscriptionId") String subscriptionId) {
-        SubscriptionDTO dto = subscriptionHandler.deleteSubscription(DPDPTenantContext.getOrganizationId(), subscriptionId);
+        SubscriptionDTO dto = EventNotificationDtoMapper.toDto(
+                subscriptionHandler.deleteSubscription(DPDPTenantContext.getOrganizationId(), subscriptionId));
         return Response.ok(dto).build();
     }
 
@@ -95,7 +104,8 @@ public class SubscriptionEndpoint {
     @Path("/{subscriptionId}/verify")
     public Response retryVerification(
             @PathParam("subscriptionId") String subscriptionId) {
-        SubscriptionDTO dto = subscriptionHandler.retryVerification(DPDPTenantContext.getOrganizationId(), subscriptionId);
+        SubscriptionDTO dto = EventNotificationDtoMapper.toDto(
+                subscriptionHandler.retryVerification(DPDPTenantContext.getOrganizationId(), subscriptionId));
         return Response.ok(dto).build();
     }
 
@@ -103,10 +113,11 @@ public class SubscriptionEndpoint {
     @Path("/{subscriptionId}/events")
     public Response listSubscriptionEvents(
             @PathParam("subscriptionId") String subscriptionId,
-            @QueryParam("limit") @DefaultValue("20") int limit,
-            @QueryParam("offset") @DefaultValue("0") int offset) {
-        PaginatedResult<SubscriptionDeliveryDTO> result = subscriptionHandler.listSubscriptionEvents(
-                DPDPTenantContext.getOrganizationId(), subscriptionId, limit, offset);
+            @QueryParam("limit") @DefaultValue(EventNotificationCommonConstants.DEFAULT_LIMIT_STR) int limit,
+            @QueryParam("offset") @DefaultValue(EventNotificationCommonConstants.DEFAULT_OFFSET_STR) int offset) {
+        PaginatedSubscriptionDeliveryResult result = EventNotificationDtoMapper.toDeliveryResultDto(
+                subscriptionHandler.listSubscriptionEvents(
+                        DPDPTenantContext.getOrganizationId(), subscriptionId, limit, offset));
         return Response.ok(result).build();
     }
 
@@ -115,8 +126,9 @@ public class SubscriptionEndpoint {
     public Response getSubscriptionEventHistory(
             @PathParam("subscriptionId") String subscriptionId,
             @PathParam("deliveryId") String deliveryId) {
-        SubscriptionEventHistoryDTO dto = subscriptionHandler.getSubscriptionEventHistory(
-                DPDPTenantContext.getOrganizationId(), subscriptionId, deliveryId);
+        SubscriptionEventHistoryDTO dto = EventNotificationDtoMapper.toDto(
+                subscriptionHandler.getSubscriptionEventHistory(
+                        DPDPTenantContext.getOrganizationId(), subscriptionId, deliveryId));
         return Response.ok(dto).build();
     }
 }
