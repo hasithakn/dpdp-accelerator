@@ -20,7 +20,7 @@ package org.wso2.dpdp.accelerator.complaint.mgt.dao.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.dpdp.accelerator.common.persistence.JDBCPersistenceManager;
+import org.wso2.dpdp.accelerator.common.util.DatabaseUtils;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.ComplaintAttachmentDAO;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.constants.DAOConstants;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.exception.ComplaintDAOException;
@@ -43,7 +43,7 @@ public class ComplaintAttachmentDAOImpl implements ComplaintAttachmentDAO {
 
     @Override
     public boolean addAttachment(ComplaintAttachment attachment) {
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.ADD_COMPLAINT_ATTACHMENT)) {
             ps.setString(1, attachment.getAttachmentId());
             ps.setString(2, attachment.getOrgId());
@@ -70,7 +70,7 @@ public class ComplaintAttachmentDAOImpl implements ComplaintAttachmentDAO {
     @Override
     public Optional<ComplaintAttachment> getAttachmentMetadataById(String attachmentId, String orgId,
             String complaintId) {
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.GET_ATTACHMENT_METADATA_BY_ID)) {
             ps.setString(1, attachmentId);
             ps.setString(2, orgId);
@@ -100,7 +100,7 @@ public class ComplaintAttachmentDAOImpl implements ComplaintAttachmentDAO {
     @Override
     public Optional<ComplaintAttachment> getAttachmentWithDataById(String attachmentId, String orgId,
             String complaintId) {
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.GET_ATTACHMENT_WITH_DATA_BY_ID)) {
             ps.setString(1, attachmentId);
             ps.setString(2, orgId);
@@ -120,7 +120,7 @@ public class ComplaintAttachmentDAOImpl implements ComplaintAttachmentDAO {
     @Override
     public List<ComplaintAttachment> listAttachmentsForComplaint(String orgId, String complaintId) {
         List<ComplaintAttachment> attachments = new ArrayList<>();
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.LIST_ATTACHMENT_METADATA_BY_COMPLAINT)) {
             ps.setString(1, orgId);
             ps.setString(2, complaintId);

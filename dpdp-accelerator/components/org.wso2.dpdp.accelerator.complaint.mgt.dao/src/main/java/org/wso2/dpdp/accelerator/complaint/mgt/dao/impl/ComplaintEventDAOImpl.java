@@ -20,7 +20,7 @@ package org.wso2.dpdp.accelerator.complaint.mgt.dao.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.dpdp.accelerator.common.persistence.JDBCPersistenceManager;
+import org.wso2.dpdp.accelerator.common.util.DatabaseUtils;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.ComplaintEventDAO;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.constants.DAOConstants;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.exception.ComplaintDAOException;
@@ -42,7 +42,7 @@ public class ComplaintEventDAOImpl implements ComplaintEventDAO {
 
     @Override
     public boolean addEvent(ComplaintEvent event) {
-        try (Connection conn = JDBCPersistenceManager.getConnection()) {
+        try (Connection conn = DatabaseUtils.getDBConnection()) {
             return addEvent(conn, event);
         } catch (SQLException e) {
             LOG.error("Error adding event for complaint: " + LogSanitizer.sanitize(event.getComplaintId()), e);
@@ -73,7 +73,7 @@ public class ComplaintEventDAOImpl implements ComplaintEventDAO {
 
     @Override
     public Optional<ComplaintEvent> getEventById(String complaintEventId, String orgId, String complaintId) {
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.GET_COMPLAINT_EVENT_BY_ID)) {
             ps.setString(1, complaintEventId);
             ps.setString(2, orgId);
@@ -120,7 +120,7 @@ public class ComplaintEventDAOImpl implements ComplaintEventDAO {
         boolean desc = "desc".equalsIgnoreCase(order);
         sql.append("ORDER BY ACTION_TIME ").append(desc ? "DESC" : "ASC").append(" LIMIT ? OFFSET ?");
 
-        try (Connection conn = JDBCPersistenceManager.getConnection()) {
+        try (Connection conn = DatabaseUtils.getDBConnection()) {
 
             // countSql shares the same WHERE clause/params built above as sql: run it first for the
             // total (written back via the totalOut out-param), then the LIMIT/OFFSET query for the page.

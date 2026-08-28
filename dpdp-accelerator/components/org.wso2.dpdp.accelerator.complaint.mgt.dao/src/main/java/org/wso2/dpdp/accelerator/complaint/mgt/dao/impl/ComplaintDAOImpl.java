@@ -20,7 +20,7 @@ package org.wso2.dpdp.accelerator.complaint.mgt.dao.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.dpdp.accelerator.common.persistence.JDBCPersistenceManager;
+import org.wso2.dpdp.accelerator.common.util.DatabaseUtils;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.ComplaintDAO;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.constants.ComplaintStatus;
 import org.wso2.dpdp.accelerator.complaint.mgt.dao.exception.ComplaintDAOException;
@@ -45,7 +45,7 @@ public class ComplaintDAOImpl implements ComplaintDAO {
 
     @Override
     public boolean addComplaint(Complaint complaint) {
-        try (Connection conn = JDBCPersistenceManager.getConnection()) {
+        try (Connection conn = DatabaseUtils.getDBConnection()) {
             return addComplaint(conn, complaint);
         } catch (SQLException e) {
             LOG.error("Error adding complaint for org: " + complaint.getOrgId(), e);
@@ -88,7 +88,7 @@ public class ComplaintDAOImpl implements ComplaintDAO {
 
     @Override
     public Optional<Complaint> getComplaintById(String complaintId, String orgId) {
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.GET_COMPLAINT_BY_ID)) {
             ps.setString(1, complaintId);
             ps.setString(2, orgId);
@@ -106,7 +106,7 @@ public class ComplaintDAOImpl implements ComplaintDAO {
 
     @Override
     public int countByReferenceIdPrefix(String orgId, String referenceIdLikePattern) {
-        try (Connection conn = JDBCPersistenceManager.getConnection();
+        try (Connection conn = DatabaseUtils.getDBConnection();
                 PreparedStatement ps = conn.prepareStatement(QueryConstants.COUNT_COMPLAINTS_FOR_YEAR_PREFIX)) {
             ps.setString(1, orgId);
             ps.setString(2, referenceIdLikePattern);
@@ -124,7 +124,7 @@ public class ComplaintDAOImpl implements ComplaintDAO {
 
     @Override
     public boolean updateStatus(String complaintId, String orgId, String newStatus, long updatedTime) {
-        try (Connection conn = JDBCPersistenceManager.getConnection()) {
+        try (Connection conn = DatabaseUtils.getDBConnection()) {
             return updateStatus(conn, complaintId, orgId, newStatus, updatedTime);
         } catch (SQLException e) {
             LOG.error("Error updating status for complaint: " + LogSanitizer.sanitize(complaintId), e);
@@ -197,7 +197,7 @@ public class ComplaintDAOImpl implements ComplaintDAO {
         }
         sql.append("ORDER BY ").append(orderBy).append(" LIMIT ? OFFSET ?");
 
-        try (Connection conn = JDBCPersistenceManager.getConnection()) {
+        try (Connection conn = DatabaseUtils.getDBConnection()) {
 
             // sql and countSql share the same WHERE clause/params built above: COUNT(*) first for the
             // total (written back via the totalOut out-param), then the LIMIT/OFFSET query for
@@ -242,7 +242,7 @@ public class ComplaintDAOImpl implements ComplaintDAO {
         int awaitingInternalReviewCount = 0;
         int resolvedCount = 0;
 
-        try (Connection conn = JDBCPersistenceManager.getConnection()) {
+        try (Connection conn = DatabaseUtils.getDBConnection()) {
 
             try (PreparedStatement statusPs = conn.prepareStatement(QueryConstants.COUNT_COMPLAINTS_BY_STATUS)) {
                 statusPs.setString(1, orgId);
