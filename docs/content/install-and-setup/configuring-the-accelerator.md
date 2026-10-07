@@ -8,11 +8,6 @@ sidebar_position: 2
 This section covers the configuration options available for the DPDP Accelerator. 
 All settings are configured in `<IS_HOME>/repository/conf/deployment.toml`. After making changes, restart WSO2 Identity Server for them to take effect.
 
-When the server starts, the accelerator automatically provisions the DPDP
-Consent Portal application and its three required roles for every tenant,
-including the super tenant. If any of these resources are missing or need to
-be restored, see [Restore tenant resources](#restore-tenant-resources).
-
 ## Consent configurations
 
 These settings control how consent records are created, updated, and managed:
