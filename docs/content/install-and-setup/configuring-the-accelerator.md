@@ -3,10 +3,34 @@ title: Configuring the DPDP Accelerator
 sidebar_position: 2
 ---
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 # Configuring the DPDP Accelerator
 
 This section covers the configuration options available for the DPDP Accelerator. 
 All settings are configured in `<IS_HOME>/repository/conf/deployment.toml`. After making changes, restart WSO2 Identity Server for them to take effect.
+
+## Server and administrator
+
+Set these values according to your environment:
+
+```toml
+[server]
+hostname = "<public host name of the Identity Server>"
+
+[super_admin]
+username = "<administrator username>"
+password = "<administrator password>"
+create_admin_account = true
+```
+
+With the accelerator's user-store configuration, usernames are email
+addresses. Use an email address for the administrator as well.
+
+See the Identity Server documentation on
+[Encrypting passwords with the Cipher Tool](https://is.docs.wso2.com/en/7.3.0/deploy/security/encrypt-passwords-with-cipher-tool/)
+to learn how to provide the administrator password as an encrypted secret.
 
 ## Consent configurations
 
@@ -305,3 +329,39 @@ worker_shutdown_timeout_seconds = 5
 
 See the [Event Notification Guide](event-notification-guide.md) for more on
 any of these.
+
+## Next Steps
+
+Once you've made the required configuration changes, start the server for
+them to take effect.
+
+### Start the server
+
+Go to `<IS_HOME>/bin` and start Identity Server:
+
+<Tabs groupId="operating-systems">
+<TabItem value="linux" label="Linux" default>
+
+```sh
+./wso2server.sh
+```
+
+</TabItem>
+<TabItem value="macos" label="macOS">
+
+```sh
+./wso2server.sh
+```
+
+</TabItem>
+<TabItem value="windows" label="Windows">
+
+```powershell
+.\wso2server.bat
+```
+
+</TabItem>
+</Tabs>
+
+- Continue with [Configuring Users and Roles](configuring-users-and-roles.md)
+  to create users and assign them accelerator roles.
