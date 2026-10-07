@@ -36,7 +36,9 @@ and which data element is involved.
 
 ![Add Element dialog filled in with the contact-email example](../../assets/images/try-out/consent/add-element-form.png)
 
-The equivalent request is:
+The equivalent request is (see
+[Managing API Access](../learn/manage-api-access.md) if you don't have an
+access token yet):
 
 ```bash
 curl -X POST \
@@ -401,3 +403,10 @@ decision, and the consent becomes usable only after all required
 authorizers approve. Relationship validation and downstream enforcement
 remain the Data Fiduciary's responsibility; this flow proves storage,
 authorization, state resolution, and audit behavior in the accelerator.
+
+---
+
+## Next Steps
+
+- Continue with [Tryout Complaints Management](complaint.md) to submit,
+  manage, and resolve a grievance.
