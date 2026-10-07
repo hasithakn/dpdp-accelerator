@@ -102,7 +102,6 @@ const config = {
               { label: 'Configuration', to: '/docs/install-and-setup/configuring-the-accelerator' },
               { label: 'Event Notifications', to: '/docs/event-notification-guide' },
               { label: 'Localization', to: '/docs/localization-guide' },
-              { label: 'Release', to: '/docs/release-guide' },
             ],
           },
         ],
