@@ -84,6 +84,7 @@ const config = {
           { to: '/docs/quickstart', label: 'Quickstart', position: 'left' },
           { to: '/docs/install-and-setup/prerequisites', label: 'Setup', position: 'left' },
           { to: '/docs/learn/manage-api-access', label: 'Learn', position: 'left' },
+          { to: '/docs/try-out/consent', label: 'Try Out', position: 'left' },
           {
             href: 'https://github.com/wso2/dpdp-accelerator',
             label: 'GitHub',
