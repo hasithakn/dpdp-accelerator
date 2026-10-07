@@ -48,11 +48,12 @@ The automatically provisioned roles grant these complaint permissions:
 | Operation | Scope | Role |
 |---|---|---|
 | Create, list, view and reply to own complaints | `complaints:read:self`, `complaints:write:self` | `dpdp-consent-user` |
-| List, view and manage all complaints | `complaints:read:any`, `complaints:write:any` | `dpdp-consent-dpo` or `dpdp-consent-admin` |
+| List, view and manage all complaints | `complaints:read:any`, `complaints:write:any` | `dpdp-consent-dpo` |
 
-The `dpdp-consent-admin` role also grants catalog, consent, and Event
-Notification administration. The DPO role is limited to organization-wide
-complaint handling. For machine-to-machine use, assign
+Organization-wide complaint handling belongs to `dpdp-consent-dpo` alone —
+`dpdp-consent-admin` does not receive complaint scopes, keeping complaint
+oversight separate from portal administration (catalog, consent, and Event
+Notification management). For machine-to-machine use, assign
 `complaints:read:self`, `complaints:write:self`, `complaints:read:any`, or
 `complaints:write:any` as appropriate to a dedicated integration role instead
 of using a portal administrator role.
