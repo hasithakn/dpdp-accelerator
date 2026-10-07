@@ -224,6 +224,6 @@ the self-service surface.
 | `409` on a status change | The requested target is not permitted from the current status. |
 | Internal note visible to a Data Principal | Verify that the note was posted through `/complaints/*` with `isPublic: false`, and that the reader is using the `/me/*` timeline. |
 
-For a complete end-to-end walkthrough, see [Tryout Flows](tryout-flows.md).
+For a complete end-to-end walkthrough, see [Try Out](try-out/complaint.md).
 For server-side deadline and upload settings, see
-[Configuration Guide](configuration-guide.md#6-configure-complaint-management).
+[Configuration Guide](install-and-setup/configuring-the-accelerator.md#configure-complaint-management).

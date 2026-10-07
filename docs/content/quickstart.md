@@ -18,7 +18,7 @@ This guide sets up the accelerator in a local environment with the default
 :::info Setting up for production?
 
 This quickstart is for local evaluation only. For a production deployment,
-follow the [Setup Guide](setup-guide.md) instead.
+follow [Install and Set Up](install-and-setup/prerequisites.md) instead.
 
 :::
 
@@ -218,7 +218,7 @@ password `wso2123`.
 ## Set up portal users
 
 To fully try out the accelerator, create users and assign them these roles by
-following [Assign portal roles](configuration-guide.md#4-assign-portal-roles):
+following the [Role Guide](role-guide.md):
 
 | User | Role | What they can do in the portal |
 | --- | --- | --- |
@@ -236,9 +236,9 @@ Open `https://localhost:9443/consent-portal/` and sign in as the user holding
 
 ## Next steps
 
-- [Learn through real stories](learn.md) — see how the main features fit
-  together from each participant's point of view
-- [Tryout Flows](tryout-flows.md) — walk through the catalog, consent
-  lifecycle, complaint, event, and account-deletion flows
-- [Setup Guide](setup-guide.md) — move to a production deployment with an
-  external MySQL or PostgreSQL database
+- [Learn through real stories](learn/manage-api-access.md) — see how the main
+  features fit together from each participant's point of view
+- [Try Out](try-out/consent.md) — walk through the catalog, consent lifecycle,
+  complaint, and event flows
+- [Install and Set Up](install-and-setup/prerequisites.md) — move to a
+  production deployment with an external MySQL or PostgreSQL database

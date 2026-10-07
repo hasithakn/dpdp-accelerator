@@ -127,8 +127,6 @@ Deleting the account removes Priya's Identity Server user. It doesn't
 automatically erase her consent history, complaints, or past events. CarePulse
 decides how long to keep those records under its own retention rules.
 
-**Try it:** [Delete a disposable account](../tryout-flows.md#flow-7-delete-a-disposable-account)
-
 ## What events don't do
 
 An event tells a processor that something changed. It doesn't make the

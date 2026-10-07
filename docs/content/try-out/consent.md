@@ -125,7 +125,7 @@ can be used by a connected application when it creates a consent.
 > or as part of its consent journey. The automatically provisioned **DPDP
 > Consent API Invoker** application supports machine-to-machine access to the
 > consents resource; see
-> [Consent API Invoker provisioning](../configuration-guide.md#consent-api-invoker-provisioning).
+> [Consent API Invoker provisioning](../install-and-setup/configuring-the-accelerator.md#consent-api-invoker-provisioning).
 
 ## Review, authorize, revoke, and audit a consent
 

@@ -224,4 +224,4 @@ PostgreSQL 15, 16 or 17: [`postgresql-42.7.13.jar`](https://repo1.maven.org/mave
 
 After setting up the databases, executing the scripts, and configuring datasources:
 
-- Continue with [Configuring deployment.toml](configuring-deployment-toml.md) to set up server hostnames, administrator credentials, and encrypt passwords with the Cipher Tool.
+- Continue with [Configuring the Accelerator](configuring-the-accelerator.md) to set up server hostnames, administrator credentials, and encrypt passwords with the Cipher Tool.

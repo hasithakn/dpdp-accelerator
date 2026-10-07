@@ -18,7 +18,7 @@ const sidebars = {
         { type: 'doc', id: 'install-and-setup/prerequisites', label: '1. Prerequisites' },
         { type: 'doc', id: 'install-and-setup/setting-up-servers', label: '2. Setting Up Servers' },
         { type: 'doc', id: 'install-and-setup/setting-up-the-database', label: '3. Setting Up the Database' },
-        { type: 'doc', id: 'install-and-setup/configuring-deployment-toml', label: '4. Configuring deployment.toml' },
+        { type: 'doc', id: 'install-and-setup/configuring-the-accelerator', label: '4. Configuring the Accelerator' },
         { type: 'doc', id: 'install-and-setup/configuring-users-and-roles', label: '5. Configuring Users and Roles' },
       ],
     },
