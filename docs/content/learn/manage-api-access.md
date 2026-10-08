@@ -1,6 +1,6 @@
 # Managing API Access
 
-The DPDP Accelerator provides two ways to control access to its capabilities:
+The DPDP Accelerator provides two ways to access its capabilities:
 
 1. **Roles and permissions** — control what users can do when they sign in to the Consent Portal.
 2. **Direct API access** — allow applications and backend systems to call the accelerator APIs directly using an access token.
@@ -191,3 +191,9 @@ If the request fails, check the HTTP status code:
 
 - **401 Unauthorized** — The access token is missing, invalid, or expired. Obtain a new access token and try again.
 - **403 Forbidden** — The access token is valid, but it does not contain the scope required by the API. Return to Step 2 and authorize the required scope for the application.
+
+## Next Steps
+
+- [Try Out: Consent](../try-out/consent.md) — see the scopes and tokens from this page used in a real API call.
+- [Consent](consent.md) — learn how consent is given, reviewed, and revoked.
+- [Role Guide](../role-guide.md) — the full reference for roles, scopes, and permissions.

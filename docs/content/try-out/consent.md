@@ -1,4 +1,4 @@
-# Try out consent management
+# Consent Management
 
 The Consent Portal supports catalog administration, self-service consent
 review, authorization and revocation, tenant-wide administrative review, and
@@ -408,5 +408,5 @@ authorization, state resolution, and audit behavior in the accelerator.
 
 ## Next Steps
 
-- Continue with [Tryout Complaints Management](complaint.md) to submit,
-  manage, and resolve a grievance.
+- Continue with [Complaint Management](complaint.md) to submit, manage, and
+  resolve a grievance.
