@@ -7,7 +7,7 @@ application or the Consent Management API creates the consent before the Data
 Principal acts on it.
 
 The curl examples below assume you already have an access token with the
-right scopes. See [Managing API Access](../learn/manage-api-access.md) for
+right scopes. See [Managing Access](../learn/managing-access.md) for
 how to create an application, authorize it, and get a token.
 
 ## Define a purpose and its data element
@@ -37,7 +37,7 @@ and which data element is involved.
 ![Add Element dialog filled in with the contact-email example](../../assets/images/try-out/consent/add-element-form.png)
 
 The equivalent request is (see
-[Managing API Access](../learn/manage-api-access.md) if you don't have an
+[Managing Access](../learn/managing-access.md) if you don't have an
 access token yet):
 
 ```bash

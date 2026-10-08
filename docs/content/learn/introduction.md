@@ -40,7 +40,7 @@ Learn how connected systems are notified when important changes occur, such as c
 
 ## Next Steps
 
-- [Managing API Access](manage-api-access.md) — roles, permissions, and direct API access.
+- [Managing Access](managing-access.md) — roles, permissions, and direct API access.
 - [Consent](consent.md) — the consent lifecycle, from defining a purpose to withdrawing consent.
 - [Complaint](complaint.md) — how grievances are raised, tracked, and resolved.
 - [Event Notifications](event.md) — how connected systems stay informed of important changes.
