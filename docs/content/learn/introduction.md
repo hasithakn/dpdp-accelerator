@@ -12,10 +12,10 @@ The examples in this guide are intended to help you understand how the accelerat
 
 Once you have set up the DPDP Accelerator, you can start exploring it using the following URLs.
 
-| Component | What it's for | URL |
-|---|---|---|
-| **Identity Server** | The Identity Server console and its consent management APIs | `https://<HOST>/t/<TENANT>/console` |
-| **Consent Portal** | The user-facing portal | `https://<HOST>/t/<TENANT>/consent-portal` |
+| Component                   | URL |
+|-----------------------------|---|
+| **Identity Server Console** | `https://<HOST>/t/<TENANT>/console` |
+| **Consent Portal**          | `https://<HOST>/t/<TENANT>/consent-portal` |
 
 These are the main starting points for exploring the DPDP Accelerator. You can use the sections in this guide to understand what you can do with these components and how the different capabilities work together.
 
