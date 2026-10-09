@@ -114,6 +114,34 @@ This template contains the baseline settings for the DPDP Accelerator, including
 
 ---
 
+## 4. Secure the Default Keystore
+
+If you are using the default keystore provided with the product, remove any unnecessary or expired Root CA certificates before using it.
+
+The default keystore is located at:
+
+```text
+<IS_HOME>/repository/resources/security/wso2carbon.p12
+```
+
+1. List the certificates in the keystore and identify the certificates you want to remove:
+
+   ```bash
+   keytool -list -v -keystore wso2carbon.p12
+   ```
+
+2. Remove a certificate using its alias:
+
+   ```bash
+   keytool -delete -alias <ALIAS_TO_REMOVE> -keystore wso2carbon.p12
+   ```
+
+:::tip
+For a production deployment, consider [creating a new keystore](https://is.docs.wso2.com/en/latest/deploy/security/keystores/create-new-keystores/) and [configuring it](https://is.docs.wso2.com/en/latest/deploy/security/keystores/configure-keystores/) instead of using the default one.
+:::
+
+---
+
 ## Next Steps
 
 Once the server artifacts are installed and the base `deployment.toml` template is copied, proceed to configure the databases before starting the server:
