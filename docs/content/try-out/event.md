@@ -230,14 +230,13 @@ call that API once yourself.
    [Consent API Invoker provisioning](../install-and-setup/configuring-the-accelerator.md#consent-api-invoker-provisioning)
    explains how to get its credentials. Get the token from the same tenant
    the consent belongs to, since one tenant won't accept another tenant's
-   token. Then set it, along with your server and tenant, for the next step:
+   token. Then set it, along with your server, for the next step:
 
    <Tabs groupId="operating-systems">
    <TabItem value="linux" label="Linux" default>
 
    ```bash
    export BASE_URL="https://localhost:9443"
-   export TENANT_DOMAIN="example.com"
    export TOKEN="<access-token>"
    ```
 
@@ -246,7 +245,6 @@ call that API once yourself.
 
    ```bash
    export BASE_URL="https://localhost:9443"
-   export TENANT_DOMAIN="example.com"
    export TOKEN="<access-token>"
    ```
 
@@ -255,14 +253,11 @@ call that API once yourself.
 
    ```powershell
    $env:BASE_URL = "https://localhost:9443"
-   $env:TENANT_DOMAIN = "example.com"
    $env:TOKEN = "<access-token>"
    ```
 
    </TabItem>
    </Tabs>
-
-   Change `TENANT_DOMAIN` to your own tenant's domain.
 
 3. **Create an active consent for Priya.** `subjectId` is the Data
    Principal's username, `priya@example.com`, and it has to belong to a user
@@ -529,16 +524,16 @@ revoked:
 [INFO] HMAC-SHA256 signature verified successfully.
 [INFO] Decoded Event Payload:
 {
-  "iss": "https://localhost:9443/t/example.com/oauth2/token",
-  "sub": "example.com",
+  "iss": "https://localhost:9443/oauth2/token",
+  "sub": "carbon.super",
   "aud": "dpdp-event-notifications",
   ...
   "payload": {
     "deliveryId": "58328a80-4e74-44c8-80cc-927414e4159a",
     "eventId": "131b9ab4-c6f2-4652-ae70-023dafc35c8f",
     "subscriptionId": "e4e10144-e76a-4d4b-9e80-70747df4f650",
-    "orgId": "example.com",
-    "groupId": "example.com",
+    "orgId": "carbon.super",
+    "groupId": "carbon.super",
     "topic": "consent.revoke",
     "eventPayload": {
       "consentId": "c540bcee-c9d8-4919-8fdc-e2b9723971f5",

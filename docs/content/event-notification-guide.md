@@ -291,7 +291,7 @@ The decoded JWS claims have the following shape:
 
 ```json
 {
-  "iss": "https://is.example.com:9443/t/example.com/oauth2/token",
+  "iss": "https://is.example.com:9443/oauth2/token",
   "sub": "example-group",
   "aud": "dpdp-event-notifications",
   "iat": 1787651970,
@@ -302,7 +302,7 @@ The decoded JWS claims have the following shape:
     "deliveryId": "<delivery-id>",
     "eventId": "<event-id>",
     "subscriptionId": "<subscription-id>",
-    "orgId": "example.com",
+    "orgId": "carbon.super",
     "groupId": "example-group",
     "topic": "consent-status-changed",
     "eventPayload": {

@@ -1,28 +1,41 @@
 # Consent Management
 
-The Consent Portal supports catalog administration, self-service consent
-review, authorization and revocation, tenant-wide administrative review, and
-consent history. It deliberately does not create consents: a connected
-application or the Consent Management API creates the consent before the Data
-Principal acts on it.
+Explore how the DPDP Accelerator handles consent, from defining purposes and data elements to reviewing, authorizing, revoking, and auditing consent records.
 
-The curl examples below assume you already have an access token with the
-right scopes. See [Managing Access](../learn/managing-access.md) for
-how to create an application, authorize it, and get a token.
+The examples use **CarePulse**, with **Priya** as the Data Principal and **Raj** as an additional authorizer. The Consent Portal supports consent administration and self-service but does not create consent records; these must be created through a connected application or the Consent Management API.
+
+## Before you begin
+
+- Ensure you can access the DPDP Accelerator and Consent Portal.
+- For delegated and co-authorized consent, create test accounts for Priya and Raj in the same tenant.
+
+The steps focus on the portal UI. **Equivalent REST API examples are included to demonstrate how to perform the same operations programmatically.** For these examples, follow [Managing Access](../learn/managing-access.md) to obtain a client-credentials token for the **DPDP Consent API Invoker**.
+
+Set your API base URL and token when trying the API examples:
+
+```bash
+export BASE_URL="https://<your-is-host>"
+export INVOKER_ACCESS_TOKEN="<client-credentials-token>"
+```
+
+## Choose a flow
+
+1. [Define a purpose and its data element](#define-a-purpose-and-its-data-element) — configure the data and purpose used by the consent examples.
+2. [Review, authorize, revoke, and audit a consent](#review-authorize-revoke-and-audit-a-consent) — create and manage a direct consent, then inspect its history.
+3. [Authorize consent as a guardian or delegate](#authorize-consent-as-a-guardian-or-delegate) — create a consent that another person must authorize.
+4. [Create a co-authorized consent](#create-a-co-authorized-consent) — require the Data Principal and another person to authorize the same consent.
+
+Complete the shared purpose-and-element setup once. The direct, delegated, and co-authorized consent flows all reuse those identifiers.
 
 ## Define a purpose and its data element
 
-This flow shows how a Data Fiduciary can model why personal data is requested
-and which data element is involved.
+This flow shows how a Data Fiduciary defines why personal data is requested and which data element is involved. You can perform the setup in the portal or call the equivalent REST APIs.
 
-**Portal:** Sign in as the portal administrator and use **Elements** and
-**Purposes**. The API examples show the requests made for the same operations.
+### Create an element
 
-#### Create an element
-
-1. Sign in as the portal administrator.
+1. Sign in to the Consent Portal as the portal administrator.
 2. Open **Elements** and select **Add Element**.
-3. Enter:
+3. Enter the following values:
 
    | Field | Example |
    |---|---|
@@ -31,19 +44,18 @@ and which data element is involved.
    | Description | `Email address used to send optional product updates.` |
 
 4. Select **Create**.
-5. Open the resulting row and confirm its identifier, display name,
-   description, and properties.
+5. Open the resulting row and note its identifier. You will use that ID when creating the purpose.
 
 ![Add Element dialog filled in with the contact-email example](../../assets/images/try-out/consent/add-element-form.png)
 
-The equivalent request is (see
-[Managing Access](../learn/managing-access.md) if you don't have an
-access token yet):
+#### Create the element using the REST API (optional)
+
+Use this alternative only if you want to create the element through the API instead of the portal. Replace `${ADMIN_ACCESS_TOKEN}` with an administrator token that has the required catalog permissions. The response's `id` is the element ID; keep it for the next step.
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/identity/consent-mgt/v2.0/elements" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${ADMIN_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "contact-email",
@@ -52,7 +64,7 @@ curl -X POST \
   }'
 ```
 
-Representative response:
+Representative response (the ID will differ in your environment):
 
 ```json
 {
@@ -63,10 +75,10 @@ Representative response:
 }
 ```
 
-#### Create a purpose
+### Create a purpose
 
 1. Open **Purposes** and select **Add Purpose**.
-2. Enter:
+2. Enter the following values:
 
    | Field | Example |
    |---|---|
@@ -75,20 +87,20 @@ Representative response:
    | Version | `1.0` |
    | Description | `Send occasional product news by email.` |
 
-3. In the element selector, add `contact-email` and choose whether it is
-   mandatory for this purpose.
+3. In the element selector, add `contact-email` and choose whether it is mandatory for this purpose. In this example, it is optional.
 4. Select **Create**.
-5. Open the purpose and verify that version `1.0` references the expected
-   element.
+5. Open the purpose and confirm that version `1.0` references the expected element.
 
 ![Add Purpose dialog with the contact-email element associated](../../assets/images/try-out/consent/add-purpose-form.png)
 
-Replace `<element-id>` with the `id` returned above. The equivalent request is:
+#### Create the purpose using the REST API (optional)
+
+Use this alternative only if you want to create the purpose through the API instead of the portal. Replace `${ADMIN_ACCESS_TOKEN}` with an administrator token that has the required catalog permissions, and replace `<element-id>` with the `id` returned when you created `contact-email`.
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/identity/consent-mgt/v2.0/purposes" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${ADMIN_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "marketing-email",
@@ -104,7 +116,7 @@ curl -X POST \
   }'
 ```
 
-Representative response:
+Representative response (the IDs will differ in your environment):
 
 ```json
 {
@@ -118,7 +130,7 @@ Representative response:
   },
   "elements": [
     {
-      "id": "<element-id>",
+      "id": "b9dd5f0d-4981-4d56-86b6-65b5d8d32e24",
       "name": "contact-email",
       "displayName": "Contact email",
       "mandatory": false
@@ -127,36 +139,24 @@ Representative response:
 }
 ```
 
-Expected result: the purpose and element appear in the tenant's catalog and
-can be used by a connected application when it creates a consent.
+Expected result: the purpose and element appear in the tenant's configuration and can be referenced by a connected application when it creates a consent. Keep both returned IDs for the following flows.
 
-> The portal does not contain an **Add Consent** action. A consent is created
-> by an application through WSO2 Identity Server's Consent Management v2 API
-> or as part of its consent journey. The automatically provisioned **DPDP
-> Consent API Invoker** application supports machine-to-machine access to the
-> consents resource; see
-> [Consent API Invoker provisioning](../install-and-setup/configuring-the-accelerator.md#consent-api-invoker-provisioning).
+> **Important:** The portal does not have an **Add Consent** action. A consent is created by a connected application or through WSO2 Identity Server's Consent Management v2 API. The automatically provisioned **DPDP Consent API Invoker** application supports machine-to-machine access to the consents resource. See [Consent API Invoker provisioning](../install-and-setup/configuring-the-accelerator.md#consent-api-invoker-provisioning).
 
 ## Review, authorize, revoke, and audit a consent
 
-This flow requires a consent created for the Data Principal by a connected
-application or the Consent Management v2 API. Use a disposable consent because
-approval, rejection, and revocation change its state.
+In this flow, create a **Direct Consent** for Priya, review it as the Data Principal, revoke it, and inspect the administrative record and status history.
 
-**Portal:** The Data Principal performs the self-service actions under
-**Pending Consents** and **All Consents**. An authorizer named on someone
-else's consent acts from their own **My Consents**, filtered to **Managed**.
-The administrator uses **Administration → Consents**. Creating the
-prerequisite consent is not a portal operation.
+A Direct Consent has no named authorizers, so it becomes `ACTIVE` immediately. Consent creation is an API operation; the portal is used to review and manage the resulting record.
 
-Create the consent using the Consent API Invoker's client-credentials token.
-This is a **Direct Consent** — no named authorizers — so it starts `ACTIVE`
-immediately, since Priya is consenting for herself:
+### Create a direct consent
+
+Use the Consent API Invoker's client-credentials token. Replace `<marketing-email-purpose-id>` and `<contact-email-element-id>` with the IDs returned in the previous flow.
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/identity/consent-mgt/v2.0/consents" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${INVOKER_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "subjectId": "priya@example.com",
@@ -176,63 +176,62 @@ curl -X POST \
   }'
 ```
 
-See [Authorize consent as a guardian or delegate](#authorize-consent-as-a-guardian-or-delegate)
-below for a consent that instead names someone else as the authorizer.
+Retain the returned consent ID for the next steps. The sample `expiryTime` is a Unix timestamp in milliseconds (27 January 2033, UTC). Replace it with a future timestamp appropriate for your test environment if needed.
 
-#### Act on your own consent (Direct Consent)
+### Review and validate the consent as Priya
 
-1. Sign in as the Data Principal.
+1. Sign in to the Consent Portal as Priya.
 2. Open **All Consents** and select the Direct Consent created above.
-3. Review its metadata, properties, purposes, and data elements. An empty
-   authorizations table confirms it's a Direct Consent — no one else needed
-   to approve it.
-4. In **Consent Lifecycle**, confirm that the status timeline records its
-   creation.
-5. Select **Revoke** and confirm the action.
+3. Review its metadata, properties, purposes, and data elements. An empty authorizations table confirms that no additional person needs to approve it.
+4. In **Consent Lifecycle**, confirm that the timeline records the consent's creation.
 
 ![Direct Consent detail, Active, with Revoke available to the Data Principal](../../assets/images/try-out/consent/direct-consent-active.png)
 
-The equivalent API calls:
+You can also retrieve the consent through the user-scoped API. This call is optional if you have already reviewed it in the portal. To run it, replace `${PRIYA_ACCESS_TOKEN}` with Priya's user token and `<consent-id>` with the ID returned during creation.
 
 ```bash
 curl \
   "${BASE_URL}/api/users/v1/me/consents/<consent-id>" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
 ```
+
+Before relying on a consent for processing, the consuming application should check that the consent is `ACTIVE`, that the intended processing purpose is covered, and that the required data elements are included. Creating or retrieving a consent does not, by itself, enforce those checks in a downstream application.
+
+### Revoke the consent as Priya
+
+1. On the consent detail page, select **Revoke** and confirm the action.
+2. Reopen the record and verify that its state is `REVOKED` and the lifecycle section includes the corresponding audit entry.
+
+The equivalent API request is optional. To run it, replace `${PRIYA_ACCESS_TOKEN}` with Priya's user token:
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/users/v1/me/consents/<consent-id>/revoke" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
 ```
 
-Revocation has no request or response body. Expected result: the consent
-shows `REVOKED`, and the lifecycle section contains the corresponding audit
-entry. With lifecycle event publication enabled, a supported revocation
-lifecycle path publishes `consent.revoke`.
+Revocation has no required request or response body. With lifecycle event publication enabled, a supported revocation lifecycle path publishes `consent.revoke`.
 
-#### Inspect the same consent as an administrator
+### Inspect the consent as an administrator
 
-1. Sign in as the portal administrator.
+1. Sign in to the Consent Portal as the portal administrator.
 2. Open **Administration → Consents**.
-3. Filter by consent ID, user, state, service, purpose, or the available
-   advanced filters.
-4. Open the consent and compare the tenant-wide administrative view with the
-   Data Principal's view.
+3. Filter by consent ID, user, state, service, purpose, or the available advanced filters.
+4. Open the consent and compare the tenant-wide administrative view with Priya's self-service view.
 
-The self-service view only returns consents involving the signed-in user. The
-administrative registry is tenant-wide and requires the administrative consent
-scopes.
+The self-service view returns consents involving the signed-in user. The administrative registry is tenant-wide and requires the appropriate administrative consent permissions.
 
-To verify the lifecycle audit independently of the UI:
+### Inspect the status history
+
+You can also use the DPDP Consent Management API to verify the lifecycle history independently of the portal. This call is optional; to run it, replace `${ADMIN_ACCESS_TOKEN}` with an administrator token that has the required scopes.
 
 ```bash
 curl \
   "${BASE_URL}/api/dpdp/consent-mgt/v1/consents/<consent-id>/status-history?limit=100&offset=0" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+  -H "Authorization: Bearer ${ADMIN_ACCESS_TOKEN}"
 ```
 
-Representative response after revocation:
+Representative response after revocation (the IDs and timestamps will differ in your environment):
 
 ```json
 {
@@ -254,51 +253,24 @@ Representative response after revocation:
 }
 ```
 
+Expected result: the consent is `REVOKED`, and the status history records the transition from `ACTIVE` to `REVOKED`.
+
 ## Authorize consent as a guardian or delegate
 
-A Delegated Consent names someone other than the data subject as the
-authorizer — the subject is not asked to decide, only notified. This is the
-pattern behind the parent-managed child-account use case described in the
-DPDP solution design, but the API itself only stores a subject and one or
-more separate authorizers; it does not establish that a person is actually a
-parent, lawful guardian, or other representative. A trusted Data Fiduciary
-system must verify that relationship before creating the delegated
-authorization.
+A **Delegated Consent** names someone other than the Data Principal as the authorizer. The Data Principal can see the consent but is not asked to make the authorization decision. In this example, CarePulse creates a consent for Priya and names Raj as the person who must authorize it.
+
+The API stores the subject and the required authorizers; it does not verify that an authorizer is actually a parent, lawful guardian, or other representative. A trusted Data Fiduciary system must verify that relationship before creating the delegated authorization.
 
 ![Delegated consent flow from connected-application creation through guardian approval and data-subject verification](../../assets/images/diagrams/dpdp-consent-delegation-flow.svg)
 
-**Portal:** The authorizer uses **My Pending Consents** and can filter **My
-Consents** by **Managed**. The data subject can filter the same page by
-**Personal**, where they'll see the consent explained as waiting on someone
-else, with no action available. A connected application creates the
-prerequisite consent using the Consent Management API — the portal has no
-**Add Consent** action. The purposes and elements it references, though, can
-be created either through the portal admin UI (see
-[Define a purpose and its data element](#define-a-purpose-and-its-data-element)
-above) or directly via the REST API shown there.
+### Create a delegated consent
 
-#### Create a delegated consent
-
-In this example, Priya and her spouse Raj are enrolling in a shared family
-health plan: CarePulse names Raj as the sole authorizer on Priya's consent,
-so he must approve it on her behalf.
-
-1. Create disposable user accounts for the data subject and the authorizer in
-   the same tenant, and verify their relationship in the trusted system used
-   for this test — the Consent Management API does not perform this
-   verification.
-2. Obtain a client-credentials token for the automatically provisioned **DPDP
-   Consent API Invoker** application.
-3. Use the purpose and element identifiers from
-   [Define a purpose and its data element](#define-a-purpose-and-its-data-element)
-   to create a consent whose `subjectId` is Priya and whose `authorizations`
-   list contains Raj.
-4. Retain the returned consent ID.
+Before you begin, ensure that Priya and Raj have separate test accounts in the same tenant. Create the consent with the Consent API Invoker's client-credentials token, using the purpose and element IDs from [Define a purpose and its data element](#define-a-purpose-and-its-data-element).
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/identity/consent-mgt/v2.0/consents" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${INVOKER_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "subjectId": "priya@example.com",
@@ -320,32 +292,22 @@ curl -X POST \
   }'
 ```
 
-Do not send the data subject as another authorization entry. `subjectId`
-already identifies the person whose data the consent concerns; the
-`authorizations` array contains the other users who must decide on that
-person's behalf. When at least one authorization is supplied, Identity Server
-stores the new consent as `PENDING` even if the request omits `state` or sends
-the normal `ACTIVE` default.
+Retain the returned consent ID. Do not add Priya as another entry in `authorizations`: `subjectId` already identifies the person whose data the consent concerns, while `authorizations` contains the additional people who must decide on that person's behalf. When at least one authorization is supplied, Identity Server stores the new consent as `PENDING`.
 
-#### Observe as the data subject
+### Observe the consent as Priya
 
-1. Sign in as Priya and open **Pending Consents**.
+1. Sign in to the Consent Portal as Priya and open **Pending Consents**.
 
    ![Pending Consents list showing the delegated consent waiting on Raj](../../assets/images/try-out/consent/pending-consents-list.png)
 
-2. Open the consent. Because Priya is not a named authorizer, the page
-   explains that it's waiting for authoriser approval instead of showing
-   Approve/Reject actions.
+2. Open the consent. Because Priya is not a named authorizer, the page explains that it is waiting for authorization instead of showing Approve/Reject actions.
 
    ![Consent detail for the subject of a Delegated Consent, with no action available](../../assets/images/try-out/consent/pending-consent-observer-view.png)
 
-#### Approve as the guardian or delegate
+### Approve as Raj, the delegate
 
-1. Sign in as Raj (the authorizer) and open the same consent from **My
-   Consents**, filtered to **Managed**. Alternatively, open **My Pending
-   Consents**.
-2. Confirm the data subject, service, purposes, elements, and authorization
-   entry. Raj sees Approve/Reject actions that Priya does not.
+1. Sign in to the Consent Portal as Raj, the authorizer. Open the consent from **My Consents**, filtered to **Managed**, or open **My Pending Consents**.
+2. Confirm the Data Principal, service, purpose, data elements, and authorization entry. Raj sees Approve/Reject actions that Priya does not.
 
    ![The same consent from the authorizer's view, with Approve and Reject available](../../assets/images/try-out/consent/pending-consent-authorizer-view.png)
 
@@ -353,12 +315,9 @@ the normal `ACTIVE` default.
 
    ![Review & Approve Consent confirmation dialog](../../assets/images/try-out/consent/approve-confirmation.png)
 
-4. Reopen the consent and confirm that Raj's authorization is `APPROVED`.
-   With this single required authorizer, the aggregate consent is now
-   `ACTIVE`. If several authorizers were supplied, it remains `PENDING`
-   until every required authorizer approves.
+4. Reopen the consent and confirm that Raj's authorization is `APPROVED`. Because Raj is the only required authorizer in this example, the aggregate consent becomes `ACTIVE`. If several authorizers were supplied, it would remain `PENDING` until all required authorizers approved.
 
-Raj can inspect the pending consent directly before approving it:
+Optional API alternative: Raj can inspect his pending consents through the user-scoped API. Replace `${RAJ_ACCESS_TOKEN}` with Raj's user token:
 
 ```bash
 curl \
@@ -366,7 +325,7 @@ curl \
   -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}"
 ```
 
-Approve the consent with Raj's token:
+Alternatively, approve the consent through the API using Raj's user token. Replace `${RAJ_ACCESS_TOKEN}` and `<consent-id>` with the appropriate values:
 
 ```bash
 curl -X POST \
@@ -378,53 +337,37 @@ curl -X POST \
 
 A successful authorization has no required response body.
 
-#### Verify as the data subject
+### Verify the result as Priya
 
-1. Sign back in as Priya and open **My Consents**, choosing **Personal**.
-2. Open the consent and verify that it is `ACTIVE` and records Raj's approved
-   authorization.
-3. Inspect **Consent Lifecycle** and **View Full Snapshot History** to
-   confirm that the authorization and aggregate state transition were
-   audited.
+1. Sign back in to the Consent Portal as Priya.
+2. Open **My Consents** and choose **Personal**.
+3. Open the consent and verify that it is `ACTIVE` and records Raj's approved authorization.
+4. Inspect **Consent Lifecycle** and **View Full Snapshot History** to confirm that the authorization and aggregate state transition were audited.
 
    ![Full snapshot history showing the consent created by admin and approved by Raj](../../assets/images/try-out/consent/snapshot-history-after-approval.png)
 
-The equivalent subject-scoped query is:
+Optional API alternative — the equivalent subject-scoped query uses Priya's user token:
 
 ```bash
 curl \
   "${BASE_URL}/api/users/v1/me/consents?relation=SUBJECT&attributes=purposes,authorizations" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
 ```
 
-Expected result: Priya and Raj see the same consent through different
-relationships. Only the listed authorizer can record that delegated
-decision, and the consent becomes usable only after all required
-authorizers approve. Relationship validation and downstream enforcement
-remain the Data Fiduciary's responsibility; this flow proves storage,
-authorization, state resolution, and audit behavior in the accelerator.
-
----
+Expected result: Priya and Raj can see the same consent through different relationships. Only the named authorizer can record the delegated decision, and the consent becomes active only after all required authorizers approve it. Relationship validation and downstream enforcement remain the Data Fiduciary's responsibility; this flow demonstrates consent storage, authorization, state resolution, and audit behavior in the accelerator.
 
 ## Create a co-authorized consent
 
-Unlike the delegated flow above, a co-authorized consent names the subject as
-one of the authorizers herself, alongside at least one other person. This
-demonstrates that pattern using the same purpose and element from
-[Define a purpose and its data element](#define-a-purpose-and-its-data-element).
+Unlike delegated consent, a **Co-authorized Consent** names the Data Principal as one of the authorizers alongside at least one other person. In this example, both Priya and Raj must approve the same consent.
 
-**Portal:** Both **Priya** and **Raj** act from their own **My Consents**,
-filtered to **Managed** — since each has their own entry in
-`authorizations`, each sees Approve/Reject for their own decision.
+### Create the co-authorized consent
 
-1. Using the Consent API Invoker's client-credentials token, create a consent
-   whose `subjectId` is Priya and whose `authorizations` list names both
-   Priya and Raj:
+Use the Consent API Invoker's client-credentials token and the purpose and element IDs from [Define a purpose and its data element](#define-a-purpose-and-its-data-element). The `authorizations` list includes both Priya and Raj.
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/identity/consent-mgt/v2.0/consents" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${INVOKER_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "subjectId": "priya@example.com",
@@ -447,45 +390,48 @@ curl -X POST \
   }'
 ```
 
-   Because at least one authorization is supplied, the consent is created
-   `PENDING`, even though the subject is also an authorizer.
+Retain the returned consent ID. Because authorizers are specified, the consent starts as `PENDING`, even though the subject is also an authorizer.
 
-2. Sign in as **Priya**, open **My Consents**, filter to **Managed**, and
-   approve her own entry:
+### Approve as Priya
+
+1. Sign in as Priya and open **My Consents**, filtered to **Managed**.
+2. Approve Priya's own authorization entry in the UI. If you prefer the API, run the optional request below using Priya's user token:
 
 ```bash
 curl -X POST \
   "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
-  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{ "state": "APPROVED" }'
 ```
 
-   Reopening the consent now shows Priya's own decision recorded, while the
-   consent as a whole stays `PENDING` until Raj also decides.
+Reopen the consent and confirm that Priya's decision is recorded. The overall consent remains `PENDING` until Raj also makes his decision.
 
-3. Sign in as **Raj** and approve the same consent with his own token, the
-   same way as in
-   [Approve as the guardian or delegate](#approve-as-the-guardian-or-delegate)
-   above.
+### Approve as Raj
 
-4. Reopen the consent as either **Priya** or **Raj**. With both
-   authorizations `APPROVED`, the aggregate consent is now `ACTIVE`, and
-   either of them can revoke it going forward — not only whoever approved it
-   first.
+1. Sign in as Raj and open the same consent from **My Consents**, filtered to **Managed**, or from **My Pending Consents**.
+2. Review the consent and approve Raj's own authorization entry in the UI. If you prefer the API, run the optional request below using Raj's user token:
 
-Expected result: both named authorizers, including the subject herself, had
-to approve independently before the consent became active — demonstrating
-that co-authorized consent is distinct from both Direct Consent (no
-authorizers) and Delegated Consent (the subject has no entry at all).
+```bash
+curl -X POST \
+  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
+  -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{ "state": "APPROVED" }'
+```
 
----
+### Verify the result
+
+Reopen the consent as Priya or Raj. With both authorizations `APPROVED`, the aggregate consent becomes `ACTIVE`. Both named authorizers are required to approve independently before it becomes active.
+
+This differs from the other models:
+
+- **Direct Consent:** no named authorizers; the consent becomes `ACTIVE` immediately.
+- **Delegated Consent:** the subject is not a named authorizer; another person makes the authorization decision.
+- **Co-authorized Consent:** the subject and at least one other person are named authorizers and must each make a decision.
 
 ## Next Steps
 
-- **[Learn: Consent](../learn/consent.md):** Story-based overview of how
-  consent collection, review, and withdrawal fit together.
-- Continue with [Complaint Management](complaint.md) to submit, manage, and
-  resolve a grievance.
-- **[Try Out: All Flows](event.md):** End-to-end Try Out guide covering
-  consents and event notifications.
+- **[Learn: Understanding Consent](../learn/consent.md):** Review the concepts behind consent collection, authorization, withdrawal, and enforcement.
+- **[Try Out: Complaint Management](complaint.md):** Submit and manage a grievance.
+- **[Try Out: All Flows](event.md):** Continue with the end-to-end guide covering consents and event notifications.
