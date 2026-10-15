@@ -4,103 +4,70 @@ title: Complaints
 
 # Complaint Management
 
-This guide walks you through submitting, managing, and resolving a grievance using both the **Consent Portal** and the **Complaints REST API**.
+Use this walkthrough to submit, investigate, and resolve a complaint through the Consent Portal. Equivalent REST API examples show how to perform the same operations programmatically.
 
-The portal provides separate interfaces for a Data Principal and a Complaint Officer. This walkthrough uses a single case to demonstrate submission, file attachments, public vs. internal communication, status transitions, statutory due dates, and resolution.
+The example follows **Priya**, the Data Principal, and **Ravi**, the Complaint Officer, through submission, evidence review, communication, and resolution.
+
+For the complete list of endpoints and schemas, see the [Complaint Server API](https://github.com/wso2/dpdp-accelerator/blob/main/dpdp-accelerator/internal-webapps/org.wso2.dpdp.accelerator.complaint.mgt.endpoint/src/main/resources/complaint-server-API.yaml) specification.
 
 ![Grievance flow from Data Principal submission through complaint-officer review, communication, and resolution](../../assets/images/diagrams/dpdp-grievance-flow.svg)
 
----
+## Before you begin
 
-## Prerequisites and Roles
+- Ensure you can access the DPDP Accelerator and Consent Portal.
+- Create test accounts for **Priya** (Data Principal) and **Ravi** (Complaint Officer) in the same tenant, with the appropriate roles assigned.
 
-Before starting, ensure users and roles are configured:
+The walkthrough focuses on the portal UI. REST API examples are provided as alternatives for performing the same operations programmatically.
 
-| Role | User Persona | Portal Interface | API Namespace |
-|---|---|---|---|
-| **`dpdp-consent-user`** | Data Principal | **My Complaints** | `/api/dpdp/complaints/v1/me/complaints` |
-| **`dpdp-consent-dpo`** | Complaint Officer / DPO | **Administration > Complaints** | `/api/dpdp/complaints/v1/complaints` |
+| User | Portal area | API namespace |
+|---|---|---|
+| **Priya** — Data Principal | **My Complaints** | `/api/dpdp/complaints/v1/me/complaints` |
+| **Ravi** — Complaint Officer | **Administration → Complaints** | `/api/dpdp/complaints/v1/complaints` |
 
-:::info REST API Testing with M2M Applications
-To test the REST APIs, define the server variables and obtain two distinct OAuth 2.0 access tokens:
-- **`BASE_URL`**: Base URL of your WSO2 Identity Server instance (e.g., `https://localhost:9443`).
-- **`DATA_PRINCIPAL_TOKEN`**: Scoped to self-service endpoints (`complaints:read:self`, `complaints:write:self`).
-- **`DPO_TOKEN`**: Scoped to organization-wide complaint handling (`complaints:read:any`, `complaints:write:any`).
+For API testing, use the appropriate access token:
 
-To generate these tokens easily, create two **Machine-to-Machine (M2M)** applications in the WSO2 Identity Server Console (**Applications > New Application > Machine-to-Machine**) using the **Client Credentials** grant:
-1. **Data Principal M2M App**: Authorize for the Complaints API with `complaints:read:self` and `complaints:write:self`.
-2. **DPO M2M App**: Authorize for the Complaints API with `complaints:read:any` and `complaints:write:any`.
+- **Priya's token:** Requires `complaints:read:self` and `complaints:write:self` for self-service operations.
+- **Ravi's token:** Requires `complaints:read:any` and `complaints:write:any` for officer operations. Alternatively, use an M2M client-credentials token authorized for these scopes when calling officer-level APIs programmatically.
 
-Set your environment variables and request the tokens:
+Follow [Managing Access](../learn/managing-access.md) to configure API access and obtain the required tokens.
+
+Set the following variables when running the API examples:
 
 ```bash
-# Environment variables
-export BASE_URL="https://localhost:9443"
-
-# Obtain Data Principal token (scoped: complaints:read:self complaints:write:self)
-DATA_PRINCIPAL_TOKEN=$(curl -s -X POST "${BASE_URL}/oauth2/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=client_credentials" \
-  -d "client_id=${DATA_PRINCIPAL_CLIENT_ID}" \
-  -d "client_secret=${DATA_PRINCIPAL_CLIENT_SECRET}" \
-  -d "scope=complaints:read:self complaints:write:self" | jq -r '.access_token')
-
-# Obtain DPO token (scoped: complaints:read:any complaints:write:any)
-DPO_TOKEN=$(curl -s -X POST "${BASE_URL}/oauth2/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "grant_type=client_credentials" \
-  -d "client_id=${DPO_CLIENT_ID}" \
-  -d "client_secret=${DPO_CLIENT_SECRET}" \
-  -d "scope=complaints:read:any complaints:write:any" | jq -r '.access_token')
+export BASE_URL="https://<your-is-host>"
+export DATA_PRINCIPAL_TOKEN="<priya-access-token>"
+export DPO_TOKEN="<ravi-access-token-or-authorized-m2m-token>"
 ```
 
-:::note SSL Certificate Validation for Local Testing
-In local testing against WSO2 Identity Server with its default self-signed certificate, `curl` will reject the certificate by default. Add `-k` (or `--insecure`) to your `curl` commands during local testing to bypass SSL verification. In production environments, omit `-k` and use trusted CA-signed certificates or pass your CA certificate with `--cacert`.
-:::
+Use `${DATA_PRINCIPAL_TOKEN}` for `/me/complaints` operations and `${DPO_TOKEN}` for officer-level operations. For local testing with a self-signed certificate, `curl` may require `-k`; do not use it in production.
 
-Use `${DATA_PRINCIPAL_TOKEN}` for self-service (`/me/complaints`) operations and `${DPO_TOKEN}` for officer (`/complaints`) operations throughout the examples below.
+## 1. Submit a complaint
 
----
+### In the Consent Portal
 
-## Step 1: Submit the Complaint
+1. Sign in as **Priya** and open **COMPLAINTS → My Complaints**.
 
-### Via Consent Portal (Data Principal)
-
-1. Sign in to the Consent Portal as the Data Principal.
-2. In the navigation sidebar under **COMPLAINTS**, click **My Complaints**.
-   
    ![My Complaints view for Data Principal](../../assets/images/try-out/complaints/my-complaints-empty.png)
 
-3. On the top-right, click **+ Submit a complaint**.
-4. In the modal dialog:
-   - **Category:** Select the category that best describes the issue (for example, `Consent withdrawal issue`).
-   - **Description:** Enter the details of the complaint without sensitive personal data (e.g., *"I revoked my consent for marketing purposes, but the revocation is not updated in the portal and I am still receiving promotional messages."*).
-   - **Attachments (optional):** Click **Upload files** to attach supporting evidence (e.g., a screenshot of the unwanted message). Supported formats include PDF, DOCX, PNG, and JPG up to 10 MB.
-   - Click **Submit complaint**.
+2. Select **+ Submit a complaint** and enter the details:
+   - **Category:** For example, `Consent withdrawal issue`.
+   - **Description:** Explain the issue without including unnecessary sensitive personal data. For example: *"I revoked my consent for marketing purposes, but I am still receiving promotional messages."*
+   - **Attachments (optional):** Upload supporting evidence, such as a screenshot. Supported formats include PNG, JPG, PDF, and DOCX, up to 10 MB per file and five files per complaint.
+3. Select **Submit complaint**.
 
    ![Submit a complaint dialog](../../assets/images/try-out/complaints/submit-complaint-modal.png)
 
-:::tip Supporting Evidence & Attachments
-Attaching evidence is critical for fast and conclusive grievance investigations:
-- **Supported Formats:** PNG, JPG, PDF, and DOCX (up to 10 MB per file, max 5 files).
-- **Attachments Tab:** Both Data Principals and Complaint Officers can view, inspect, and download all case attachments at any time via the dedicated **Attachments** tab in the case detail workspace.
-- **Follow-up Uploads:** Complainants and officers can also upload additional files when posting follow-up messages in the activity feed.
-:::
-
-5. A confirmation banner displays stating your complaint has been submitted, and the complaint appears in the table with its Reference ID (e.g., `CMP-2026-00001`), status (`Open`), and submission date.
+4. Confirm that the complaint appears in **My Complaints** with a reference ID, status, and submission date.
 
    ![Complaint submitted confirmation and table entry](../../assets/images/try-out/complaints/complaint-submitted-success.png)
 
-6. Click on the complaint row to open its detail view:
-   - Review the assigned status and statutory deadline (e.g., *90 days left*).
-   - The **Activity** tab shows the event timeline (*Complaint received*) and includes a composer to post public follow-up messages or upload additional files.
-   - The **Attachments** tab displays any evidence files submitted with the grievance.
+5. Open the complaint to review its status and statutory due date. The **Activity** tab shows the timeline and supports public follow-up messages; the **Attachments** tab lists submitted evidence.
 
    ![Data Principal complaint detail view](../../assets/images/try-out/complaints/complaint-details-principal-view.png)
 
-### Via REST API
+### Using the REST API
 
-The self-service API derives the identity of the complainant from the OAuth bearer token (do not pass `userId` in the payload). Use the Data Principal token (`DATA_PRINCIPAL_TOKEN`):
+The self-service API identifies the complainant from the bearer token, so do not include `userId` in the request.
 
 ```bash
 curl -X POST \
@@ -108,56 +75,50 @@ curl -X POST \
   -H "Authorization: Bearer ${DATA_PRINCIPAL_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "subjectCategory": "CONSENT_WITHDRAWAL_ISSUE",
-    "description": "I revoked my consent for marketing purposes, but the revocation is not updated in the portal and I am still receiving promotional messages."
+    "subjectCategory": "CONSENT_WITHDRAWN_DATA_STILL_USED",
+    "description": "I revoked my consent for marketing purposes, but I am still receiving promotional messages."
   }'
 ```
 
-**Representative `201 Created` Response:**
-```json
-{
-  "id": "fbda5af9-f01b-47c1-8cd6-0268e6562614",
-  "referenceId": "CMP-2026-00001",
-  "subjectCategory": "CONSENT_WITHDRAWAL_ISSUE",
-  "priority": "HIGH",
-  "status": "OPEN",
-  "userId": "portal-user",
-  "description": "I revoked my consent for marketing purposes, but the revocation is not updated in the portal and I am still receiving promotional messages.",
-  "submittedAt": 1788231000000,
-  "updatedAt": 1788231000000,
-  "statutoryDueDate": 1790823000000
-}
+A successful request returns the complaint reference, status, and statutory due date. Keep the returned complaint ID for the following steps.
+
+To fetch the complaint later, replace `<complaint-id>` with the ID returned above:
+
+```bash
+curl \
+  "${BASE_URL}/api/dpdp/complaints/v1/me/complaints/<complaint-id>" \
+  -H "Authorization: Bearer ${DATA_PRINCIPAL_TOKEN}"
 ```
 
----
+## 2. Investigate and communicate
 
-## Step 2: Handle and Investigate the Complaint
+### In the Consent Portal
 
-### Via Consent Portal (Complaint Officer)
-
-1. Sign in to the Consent Portal with a user holding `dpdp-consent-dpo`.
-2. In the navigation sidebar under **ADMINISTRATION**, click **Complaints**.
-3. The queue displays overview metrics (*Open*, *Waiting on Internal Review*, *Resolved*, *SLA breached*), filtering options, and the list of tenant complaints with priority and SLA tracking.
+1. Sign in as **Ravi** and open **ADMINISTRATION → Complaints**.
+2. Find the complaint by its reference ID and open it.
 
    ![Complaint Officer queue under Administration > Complaints](../../assets/images/try-out/complaints/officer-complaints-queue.png)
 
-4. Click on the complaint (`CMP-2026-00001`) to open the investigation workspace:
-   - Review complainant details, submission timestamp, description, and statutory due date.
-   - Switch to the **Attachments** tab to inspect and download evidence uploaded by the complainant.
-   - Choose between **REPLY** (sends a public message visible to the Data Principal) and **INTERNAL NOTE** (records private notes visible strictly to officers).
+3. Review the complaint details, due date, and evidence in the **Attachments** tab.
 
    ![Complaint Officer case view with Reply and Internal Note options](../../assets/images/try-out/complaints/officer-complaint-handling.png)
 
-5. Send a public reply (e.g., *"We are reviewing your request."*).
-6. Click **INTERNAL NOTE**, enter an investigation finding (e.g., *"Verified delivery logs: revoke event delivery to marketing processor failed. Requesting manual sync."*), and click **Send**.
-   :::info Internal Note Confidentiality
-   Internal notes remain visible strictly to officers; they are never shown to the Data Principal in their portal view.
-   :::
-7. Sign back in as the Data Principal, navigate to **My Complaints**, and verify that the public reply is visible in the timeline while the internal note is hidden.
+4. Use **REPLY** to send a message visible to Priya, such as *"We are reviewing your request."* Use **INTERNAL NOTE** for investigation notes that should only be visible to officers.
+5. Sign back in as Priya and verify that the public reply appears in the activity timeline and the internal note is not visible.
 
-### Via REST API (Officer Reply & Status Update)
+### Using the REST API
 
-An officer can send a message and transition the case status in a single request using the DPO token (`DPO_TOKEN`):
+`${DPO_TOKEN}` here can be Ravi's own signed-in access token, or a client-credentials token from an M2M application authorized for `complaints:read:any`/`complaints:write:any` — both carry the same officer-level scopes.
+
+Replace `<complaint-id>` with the ID returned when the complaint was created. Fetch its full detail, including Priya's description and any attachments:
+
+```bash
+curl \
+  "${BASE_URL}/api/dpdp/complaints/v1/complaints/<complaint-id>" \
+  -H "Authorization: Bearer ${DPO_TOKEN}"
+```
+
+Ravi can then post a public reply and move the complaint to `IN_PROGRESS` in one request:
 
 ```bash
 curl -X POST \
@@ -171,39 +132,23 @@ curl -X POST \
   }'
 ```
 
-**Representative `200 OK` Response:**
-```json
-{
-  "id": "4af15889-f1f7-48c9-af02-f8e903b3a573",
-  "actorUserId": "complaint-officer",
-  "actorRole": "COMPLAINT_OFFICER",
-  "message": "We are reviewing your request.",
-  "isPublic": true,
-  "fromStatus": "OPEN",
-  "toStatus": "IN_PROGRESS",
-  "createdTime": 1788231600000
-}
-```
+To add an internal note instead, set `"isPublic": false`. Internal notes are visible to officers only.
 
-:::tip Adding an Internal Note via API
-To create an internal note via API, set `"isPublic": false` in the payload above using `${DPO_TOKEN}`.
-:::
+## 3. Resolve the complaint
 
----
+### In the Consent Portal
 
-## Step 3: Resolve the Complaint
-
-### Via Consent Portal
-1. In the Complaint Officer view, open the send button status menu on the comment composer.
-2. Select **`RESOLVED`**, enter a final resolution message explaining the actions taken, and submit.
-3. The complaint transitions to **Resolved**, and an advisory banner confirms that the case is locked and can only be reopened if the client sends a new message:
+1. As Ravi, open the complaint and use the status menu beside the comment composer.
+2. Select **RESOLVED**, enter a final message describing the outcome, and submit it.
+3. Confirm that the complaint shows **Resolved**.
 
    ![Final resolved view in Complaint Management](../../assets/images/try-out/complaints/complaint-final-resolved-view.png)
 
-4. Sign back in as the Data Principal under **My Complaints** to verify that the resolution message and `RESOLVED` status are reflected in their portal timeline.
+4. Sign back in as Priya and verify that the resolution message and status appear in **My Complaints**.
 
-### Via REST API
-To transition the complaint status to `RESOLVED` via the API, send a comment using `${DPO_TOKEN}` with `"toStatus": "RESOLVED"`:
+### Using the REST API
+
+Use Ravi's token to post the final public message and set the status to `RESOLVED`:
 
 ```bash
 curl -X POST \
@@ -211,16 +156,14 @@ curl -X POST \
   -H "Authorization: Bearer ${DPO_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "The marketing processor synchronization has been restored, and promotional notifications are stopped.",
+    "message": "The marketing preferences have been updated, and promotional messages have stopped.",
     "isPublic": true,
     "toStatus": "RESOLVED"
   }'
 ```
 
----
-
 ## Next Steps
 
-- **[Learn: Complaints](../learn/complaint.md):** Story-based overview of grievance handling.
-- **[Try Out: All Flows](event.md):** End-to-end Try Out guide covering consents and event notifications.
-- **[Developer Guide: Grievances](../grievances-guide.md):** Full API specifications, attachment limits, and email template customization.
+- [Learn: Complaints](../learn/complaint.md) — understand the grievance-handling concepts behind this walkthrough.
+- [Try Out: Event Notifications](event.md) — explore event delivery and consent lifecycle notifications.
+- [Developer Guide: Grievances](../grievances-guide.md) — see the API reference, attachment limits, and email template configuration.

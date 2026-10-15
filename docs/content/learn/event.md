@@ -152,7 +152,7 @@ These signatures serve different purposes: the event signature verifies the sign
 
 Signatures do not encrypt event contents. Use HTTPS to protect notifications in transit, and avoid including unnecessary personal data in event payloads. Where possible, use references such as a consent ID rather than including personal data directly.
 
-**Try it:** [Understand what the shared secret protects](../try-out/event.md#step-1-start-the-webhook-listener)
+**Try it:** [Understand the two signature checks](../try-out/event.md#step-1-start-the-webhook-listener)
 
 ## Handling failed deliveries and unavailable endpoints
 
@@ -200,6 +200,8 @@ For webhook deliveries, there are two important things to understand:
 Completion can only be reported once a delivery has already reached **Delivered**, and only once per delivery. The completion report must also be signed using the subscription's shared secret so the accelerator can verify that it came from **CloudEngage**.
 
 For details on how to submit a completion report, see [Submit webhook delivery completion](../event-notification-guide.md#submit-webhook-delivery-completion) in the Event Notification Guide, or the `POST /deliveries/{deliveryId}/completion` operation in the [DPDP Event Notification API](https://github.com/wso2/dpdp-accelerator/blob/main/dpdp-accelerator/internal-webapps/org.wso2.dpdp.accelerator.event.notifications.endpoint/src/main/resources/event-notifications.yaml) specification.
+
+**Try it:** [Report completion](../try-out/event.md#step-6-report-completion).
 
 **In short:** Delivered means the notification was received. Completion evidence means the Data Processor has additionally reported that it successfully handled the event.
 

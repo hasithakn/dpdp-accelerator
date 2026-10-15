@@ -1,55 +1,48 @@
 # Event Notifications
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
-Event Notifications tell other systems when something changes, such as a
+Event Notifications tell connected systems when something changes, such as a
 consent being revoked or a user account being deleted. Subscribers receive
-each event at a webhook listener or by polling for it.
+events through a webhook listener or by polling for them.
 
-This page walks you through both, using three building blocks:
+This page contains two hands-on flows. You'll configure topics and subscriptions,
+trigger or publish events, and inspect delivery results in the Consent Portal.
+The receiving application runs separately from the portal.
 
-- **Topic:** the kind of change you want to hear about, such as
-  `consent.revoke`. The accelerator ships system topics for consent and user
-  lifecycle changes.
-- **Subscription:** a processor signing up for a topic. Each event reaches
-  the processor either at its webhook listener or when it polls for it.
-- **Event and delivery history:** a record of every event published and every
-  attempt to deliver it, which you can look through in the portal.
+## Choose a flow
 
-You'll manage topics and subscriptions, and look at events, in the Consent
-Portal. Events are triggered by actions in the Consent Portal or the tenant
-Console, and the receiver handles each delivery on its own side, outside the
-portal.
+- **Recommended first flow — [Notify a processor when a consent is revoked](#notify-a-processor-when-a-consent-is-revoked):** Configure a webhook, revoke a consent, and inspect the delivery. An optional final step shows how a processor reports completion.
+- **More technical flow — [Publish your own event and poll for it](#publish-your-own-event-and-poll-for-it):** Register a custom topic, publish an event through the REST API, then retrieve and acknowledge it using polling.
 
-Here are the system topics and what triggers each one:
+The key concepts used in the exercises are:
 
-| System topic | Major trigger used in this guide |
-|---|---|
-| `consent.update` | Approve or reject a consent in Flow 2 |
-| `consent.revoke` | Revoke a consent in Flow 2 |
-| `consent.expire` | Allow an eligible consent to expire through the configured expiry reconciler |
-| `user.data.change` | Update a user profile claim |
-| `user.account.delete` | Complete the disposable account deletion in Flow 7 |
+- **Topic:** The type of change, such as `consent.revoke`.
+- **Subscription:** The topics and delivery method configured for a receiver, with optional filters.
+- **Event and delivery history:** Records of published events and their delivery attempts, available in the portal.
+
+## Before you begin
+
+- Ensure you can access the DPDP Accelerator and Consent Portal.
+- Ensure test accounts exist in the same tenant for **Anika**, the administrator (`dpdp-consent-admin`), and **Priya**, the Data Principal (`dpdp-consent-user`).
+- The main steps use the portal UI where indicated. REST API examples are alternatives or are required where the portal does not perform that operation. Each API step identifies the token and scopes it needs. Follow [Managing Access](../learn/managing-access.md) if you need to configure API access.
 
 ## Notify a processor when a consent is revoked
 
-When a Data Principal revokes their consent, every Data Processor holding
-their data has to stop using it. In this flow, a marketing processor's webhook
-listener subscribes to `consent.revoke`. You'll start the listener, subscribe
-it, revoke a consent as the Data Principal, and watch the event that tells the
-processor to stop using the data arrive.
+In this flow, **CloudEngage**, CarePulse's email marketing processor, runs a
+webhook listener subscribed to `consent.revoke`. You'll start the listener,
+subscribe it, revoke a consent as Priya, and inspect the resulting event
+delivery. This is the recommended flow to try first.
 
-**Portal:** As the portal administrator, you register the subscription under
-**Event Notifications → Subscriptions** and check the result under
-**Events**. As the Data Principal, you revoke the consent from **My
-Consents**. The listener runs outside the portal.
+**Portal:** As **Anika**, CarePulse's administrator, you register the
+subscription under **Event Notifications → Subscriptions** and check the
+result under **Events**. As the Data Principal, you revoke the consent from
+**My Consents**. The listener runs outside the portal, standing in for
+CloudEngage's own listener service.
 
-You'll need two users in the tenant: an administrator with
-`dpdp-consent-admin`, and a Data Principal with `dpdp-consent-user`. We'll
-call the Data Principal Priya, with the username `priya@example.com`. It's the
-same person you met in the [Learn → Event Notifications](../learn/event.md)
-stories. Wherever you see `priya@example.com`, use your own user's username.
+You'll need two users in the tenant: Anika with `dpdp-consent-admin`, and a
+Data Principal with `dpdp-consent-user`. We'll call the Data Principal Priya,
+with the username `priya@example.com`. They're the same people you met in the
+[Learn → Event Notifications](../learn/event.md) stories. Wherever you see
+`priya@example.com`, use your own user's username.
 
 ### Step 1: Start the webhook listener
 
@@ -65,9 +58,6 @@ secret, and prints whatever it receives.
 
 **Node.js** ([`webhook-listener.mjs`](pathname:///examples/webhook-listener.mjs)) needs Node.js 18 or later:
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 node --version
 
@@ -76,39 +66,9 @@ curl -O https://raw.githubusercontent.com/wso2/dpdp-accelerator/main/docs/static
 export SHARED_SECRET="carepulse-sample-secret-9d3e7b12"
 node webhook-listener.mjs
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-node --version
-
-curl -O https://raw.githubusercontent.com/wso2/dpdp-accelerator/main/docs/static/examples/webhook-listener.mjs
-
-export SHARED_SECRET="carepulse-sample-secret-9d3e7b12"
-node webhook-listener.mjs
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-node --version
-
-curl.exe -O https://raw.githubusercontent.com/wso2/dpdp-accelerator/main/docs/static/examples/webhook-listener.mjs
-
-$env:SHARED_SECRET = "carepulse-sample-secret-9d3e7b12"
-node webhook-listener.mjs
-```
-
-</TabItem>
-</Tabs>
 
 **Python** ([`webhook-listener.py`](pathname:///examples/webhook-listener.py)) needs Python 3.9 or later:
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 python3 --version
 
@@ -118,35 +78,8 @@ export SHARED_SECRET="carepulse-sample-secret-9d3e7b12"
 python3 webhook-listener.py
 ```
 
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-python3 --version
-
-curl -O https://raw.githubusercontent.com/wso2/dpdp-accelerator/main/docs/static/examples/webhook-listener.py
-
-export SHARED_SECRET="carepulse-sample-secret-9d3e7b12"
-python3 webhook-listener.py
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-python --version
-
-curl.exe -O https://raw.githubusercontent.com/wso2/dpdp-accelerator/main/docs/static/examples/webhook-listener.py
-
-$env:SHARED_SECRET = "carepulse-sample-secret-9d3e7b12"
-python webhook-listener.py
-```
-
-</TabItem>
-</Tabs>
-
-Once it's running, the listener prints its address and confirms that
-signature checks are on:
+Once it's running, the listener prints its local address and confirms that
+HMAC signature checks are enabled:
 
 ```text
 =============================================================
@@ -157,36 +90,36 @@ signature checks are on:
 =============================================================
 ```
 
+The address shown in the terminal (usually `http://127.0.0.1:8443/dpdp/events`)
+is local to your machine. Identity Server must be able to reach the listener,
+so use a publicly reachable callback URL in the subscription. For local testing,
+the [ngrok option below](#exposing-a-listener-locally) can provide one; do not
+use a test tunnel for a production receiver.
+
 Make sure to use a strong shared secret in a production environment.
 
-:::info What the shared secret protects
+:::info Understand the two signature checks
 
-The events you receive are signed, not encrypted. Anyone who gets hold of a
-delivery can decode it and read it, secret or no secret. What the signature
-gives you is trust. Identity Server signs each event with its own tenant key,
-and you check that signature against Identity Server's public keys to confirm
-the event is genuine and hasn't been changed.
+Event contents are signed, not encrypted. HTTPS protects the contents in transit.
+Two separate signatures have different purposes:
 
-The shared secret is known only to Identity Server and your receiver. It
-proves that a message belongs to your subscription:
+- **Event JWT signature:** Identity Server signs the event JWT with its tenant
+  private key. A receiver should verify the JWT signature using the matching
+  public key published by Identity Server through its JWKS endpoint. This
+  verifies the event's authenticity and integrity.
+- **Delivery HMAC (`event-signature`):** Webhook deliveries also carry an HMAC
+  of the request body, calculated using the subscription's shared secret. The
+  sample listener checks this HMAC. It helps verify that the delivery matches
+  the secret configured for the subscription.
 
-- **Webhook deliveries** carry an `event-signature` header, an HMAC of the
-  request body made with the secret. Your listener checks it, so someone who
-  stumbles on your callback URL can't send it fake events.
-- **The signed event's `payloadHash`** is also made with the secret, so you can
-  confirm the event was issued for your subscription and not copied from
-  another subscriber's delivery.
-- **Poll requests and completion reports** from your receiver are signed with
-  the secret, so Identity Server knows they come from the subscriber.
-
-Keeping event contents private in transit is HTTPS's job. Outside local
-testing, use HTTPS callback URLs, and keep personal data out of event
-payloads.
+The shared secret is also used for the signed event's `payloadHash` and to sign
+poll requests and completion reports. These checks do not encrypt event data or
+replace validating the event JWT signature. Avoid putting unnecessary personal
+data in payloads; use references, such as a consent ID, wherever possible.
 
 :::
 
-<details>
-<summary><strong>Exposing a listener locally</strong></summary>
+#### Exposing a listener locally
 
 No public server to run the listener on? Try one of these:
 
@@ -203,16 +136,15 @@ No public server to run the listener on? Try one of these:
   `[dpdp_accelerator.event_notifications.webhook]` in `deployment.toml` and
   restart it. Keep that setting `false` in production.
 
-</details>
-
 For the listeners' other options, see
 [Run a sample reference listener](../event-notification-guide.md#run-the-sample-listener).
 
 ### Step 2: Create a consent to revoke
 
-In a real deployment, applications create consents through the Consent
-Management API, not the portal. So to get a consent you can revoke, you'll
-call that API once yourself.
+The Consent Portal does not create consent records. In a real deployment, a
+connected application creates them through the Consent Management API. For this
+exercise, you'll create a test consent with one API request, then revoke it in
+the portal as Priya.
 
 1. **Get a purpose ID and an element ID.** Sign in to the portal as the
    administrator, go to **Definitions → Purposes**, and open the purpose you
@@ -232,41 +164,16 @@ call that API once yourself.
    the consent belongs to, since one tenant won't accept another tenant's
    token. Then set it, along with your server, for the next step:
 
-   <Tabs groupId="operating-systems">
-   <TabItem value="linux" label="Linux" default>
-
    ```bash
    export BASE_URL="https://localhost:9443"
    export TOKEN="<access-token>"
    ```
-
-   </TabItem>
-   <TabItem value="macos" label="macOS">
-
-   ```bash
-   export BASE_URL="https://localhost:9443"
-   export TOKEN="<access-token>"
-   ```
-
-   </TabItem>
-   <TabItem value="windows" label="Windows">
-
-   ```powershell
-   $env:BASE_URL = "https://localhost:9443"
-   $env:TOKEN = "<access-token>"
-   ```
-
-   </TabItem>
-   </Tabs>
 
 3. **Create an active consent for Priya.** `subjectId` is the Data
    Principal's username, `priya@example.com`, and it has to belong to a user
    in the same tenant. On the highlighted line, swap in the
    **`<purpose-id>`** and **`<element-id>`** you copied in step 1:
 
-   <Tabs groupId="operating-systems">
-   <TabItem value="linux" label="Linux" default>
-
    ```bash {10}
    curl -sk -X POST "${BASE_URL}/api/identity/consent-mgt/v2.0/consents" \
      -H "Authorization: Bearer ${TOKEN}" \
@@ -282,61 +189,18 @@ call that API once yourself.
      }'
    ```
 
-   </TabItem>
-   <TabItem value="macos" label="macOS">
+   The response includes the new consent's `id`. Keep it for reference; use the
+actual ID from your response rather than the example IDs shown later.
 
-   ```bash {10}
-   curl -sk -X POST "${BASE_URL}/api/identity/consent-mgt/v2.0/consents" \
-     -H "Authorization: Bearer ${TOKEN}" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "subjectId": "priya@example.com",
-       "serviceId": "carepulse-marketing",
-       "language": "en",
-       "state": "ACTIVE",
-       "purposes": [
-         { "id": "<purpose-id>", "elements": [ { "id": "<element-id>" } ] }
-       ]
-     }'
-   ```
-
-   </TabItem>
-   <TabItem value="windows" label="Windows">
-
-   ```powershell {8}
-   $Body = @'
-   {
-     "subjectId": "priya@example.com",
-     "serviceId": "carepulse-marketing",
-     "language": "en",
-     "state": "ACTIVE",
-     "purposes": [
-       { "id": "<purpose-id>", "elements": [ { "id": "<element-id>" } ] }
-     ]
-   }
-   '@
-
-   Invoke-RestMethod -SkipCertificateCheck -Method Post `
-     -Uri "$env:BASE_URL/api/identity/consent-mgt/v2.0/consents" `
-     -Headers @{ Authorization = "Bearer $env:TOKEN" } `
-     -ContentType "application/json" `
-     -Body $Body | ConvertTo-Json -Depth 10
-   ```
-
-   </TabItem>
-   </Tabs>
-
-   The response includes the new consent's `id`. Hold on to it for Step 4.
-
-`-k` (`-SkipCertificateCheck` on Windows) skips certificate checks. Only use
-it against a local server with a self-signed certificate.
+`-k` skips certificate checks. Use it only against a local server with a
+self-signed certificate, never in production.
 
 ### Step 3: Subscribe the listener to consent revocations
 
-1. Sign in to the portal as the administrator.
+1. Sign in to the portal as Anika, the administrator.
 2. Open **Event Notifications → Subscriptions** and select **Register
    Subscription**.
-3. Enter a **Subscription Name**, such as `Marketing processor - consent
+3. Enter a **Subscription Name**, such as `CloudEngage - consent
    revocations`.
 4. Set **Topic Category** to **Consent Topics**, and select `consent.revoke`
    under **Topics**.
@@ -374,13 +238,12 @@ Over in the listener's terminal, you'll see the challenge it answered:
 [INFO] <-- Returned HTTP 200 OK with challenge: 'ec09e7a8-fb5b-4eec-9670-c3c1fbe529b9'
 ```
 
+**Optional: Register the subscription using the REST API**
+
 If you'd rather register the subscription through the API, here's the
 equivalent request. It uses the administrator's access token, which carries
 `notifications:subscriptions:write`:
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 export ADMIN_TOKEN="<admin-access-token>"
 
@@ -401,61 +264,6 @@ curl -X POST \
     }
   }'
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-export ADMIN_TOKEN="<admin-access-token>"
-
-curl -X POST \
-  "${BASE_URL}/api/dpdp/event-notifications/v1/subscriptions" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "topics": ["consent.revoke"],
-    "filter": {
-      "type": "specific",
-      "purposes": ["marketing-email"]
-    },
-    "delivery": {
-      "mode": "webhook",
-      "callbackUrl": "https://<your-ngrok-address>/dpdp/events",
-      "sharedSecret": "<shared-secret>"
-    }
-  }'
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$env:ADMIN_TOKEN = "<admin-access-token>"
-
-$Body = @'
-{
-  "topics": ["consent.revoke"],
-  "filter": {
-    "type": "specific",
-    "purposes": ["marketing-email"]
-  },
-  "delivery": {
-    "mode": "webhook",
-    "callbackUrl": "https://<your-ngrok-address>/dpdp/events",
-    "sharedSecret": "<shared-secret>"
-  }
-}
-'@
-
-Invoke-RestMethod -Method Post `
-  -Uri "$env:BASE_URL/api/dpdp/event-notifications/v1/subscriptions" `
-  -Headers @{ Authorization = "Bearer $env:ADMIN_TOKEN" } `
-  -ContentType "application/json" `
-  -Body $Body | ConvertTo-Json -Depth 10
-```
-
-</TabItem>
-</Tabs>
 
 ### Step 4: Revoke the consent
 
@@ -469,22 +277,13 @@ Invoke-RestMethod -Method Post `
 
    ![Confirm Revocation dialog](../../assets/images/try-out/event/04-confirm-revocation.png)
 
-The consent now shows **Revoked**. Behind the scenes, the portal sends this
-request, with no request body:
+The consent now shows **Revoked**. The portal performs this action for you.
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
+**Optional: Revoke the consent using the REST API**
 
-```bash
-export PRIYA_TOKEN="<priya-access-token>"
-
-curl -X POST \
-  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/revoke" \
-  -H "Authorization: Bearer ${PRIYA_TOKEN}"
-```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
+If you make the request yourself, use Priya's access token and the actual
+consent ID. Do not use the administrator's or Consent API Invoker's token for
+this self-service operation.
 
 ```bash
 export PRIYA_TOKEN="<priya-access-token>"
@@ -493,29 +292,12 @@ curl -X POST \
   "${BASE_URL}/api/users/v1/me/consents/<consent-id>/revoke" \
   -H "Authorization: Bearer ${PRIYA_TOKEN}"
 ```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$env:PRIYA_TOKEN = "<priya-access-token>"
-
-Invoke-RestMethod -Method Post `
-  -Uri "$env:BASE_URL/api/users/v1/me/consents/<consent-id>/revoke" `
-  -Headers @{ Authorization = "Bearer $env:PRIYA_TOKEN" }
-```
-
-</TabItem>
-</Tabs>
-
-If you send it yourself, use Priya's access token, not the
-administrator's.
 
 ### Step 5: Confirm that the processor was notified
 
-Within a few seconds, the delivery lands in the listener. It checks the
-signature and prints the decoded event, which names the consent Priya just
-revoked:
+Within a few seconds, the event should reach the listener. The sample checks
+the delivery HMAC and prints the decoded event, including the consent ID Priya
+just revoked:
 
 ```text
 [INFO] ==================== [EVENT DELIVERY] ====================
@@ -559,34 +341,82 @@ Notice that the event carries only the consent ID and its previous status,
 none of Priya's personal data. A real processor would use `consentId` to find
 the data it holds under that consent and stop using it.
 
-Expected result: revoking the consent publishes one `consent.revoke` event, and
-the listener receives it because its subscription matches both the topic and
-the `marketing-email` purpose. Keep in mind that **Delivered** only means the
-listener accepted the request. Actually stopping the use of the data is up to
-the processor. For more on this, see
-[receiver responsibilities](../event-notification-guide.md#acceptance-retries-and-processing-responsibilities).
+Expected result: revoking the consent publishes a `consent.revoke` event, and
+CloudEngage's listener receives it because the subscription matches both the
+topic and the `marketing-email` purpose. **Delivered** means the listener
+accepted the notification; CloudEngage is still responsible for acting on it.
+See [receiver responsibilities](../event-notification-guide.md#acceptance-retries-and-processing-responsibilities)
+for more information.
+
+### Step 6: Report completion
+
+**Optional follow-up:** You can stop after Step 5 if you only want to verify
+webhook delivery. Continue here to demonstrate how a processor reports that it
+has acted on an event.
+
+A `2xx` response confirms receipt, not completion. After CloudEngage has updated
+Priya's marketing preferences, it can submit a signed completion report so the
+accelerator records that confirmation alongside the delivery.
+
+This needs the `notifications:event-deliveries:complete` scope, which no
+default role grants. Grant it to a dedicated role or application for
+CloudEngage — see
+[Event Notification roles and scopes](../role-guide.md#event-notification-roles-and-scopes).
+
+Use the actual `deliveryId` and `groupId` shown in your Step 5 event output;
+the values in the sample output are illustrative. The request needs a token
+with `notifications:event-deliveries:complete` and the same shared secret used
+when you registered the subscription.
+
+```bash
+export CLOUDENGAGE_TOKEN="<cloudengage-access-token>"
+export GROUP_ID="<group-id-from-step-5-output>"
+export SHARED_SECRET="carepulse-sample-secret-9d3e7b12"
+DELIVERY_ID="<delivery-id-from-step-5>"
+COMPLETION_BODY='{"completionStatus":"completed","completionEvidence":"https://cloudengage.example/evidence/receipt.pdf"}'
+COMPLETION_SIGNATURE="sha256=$(printf 'v1\ncompletion\n%s\n%s' "${DELIVERY_ID}" "${COMPLETION_BODY}" \
+  | openssl dgst -sha256 -hmac "${SHARED_SECRET}" -hex | awk '{print $2}')"
+
+curl -X POST \
+  "${BASE_URL}/api/dpdp/event-notifications/v1/deliveries/${DELIVERY_ID}/completion" \
+  -H "Authorization: Bearer ${CLOUDENGAGE_TOKEN}" \
+  -H "group-id: ${GROUP_ID}" \
+  -H "event-signature: ${COMPLETION_SIGNATURE}" \
+  -H "Content-Type: application/json" \
+  -d "${COMPLETION_BODY}"
+```
+
+A successful call returns `204 No Content`. Reopen the event in **Event
+Notifications → Events** and the delivery still shows **Delivered**, now with
+**Completion Evidence** recorded alongside it:
+
+![Delivery attempt history showing the Delivered status with Completion Evidence recorded below it](../../assets/images/learn/event-delivery-completion-evidence.png)
+
+Submitting a second completion for the same delivery returns `409 Conflict`
+(`EN-4090`). For the full request/response schema, see
+[Submit webhook delivery completion](../event-notification-guide.md#submit-webhook-delivery-completion)
+in the Event Notification Guide.
 
 ## Publish your own event and poll for it
 
-The accelerator publishes consent and user lifecycle events on its own. Your
-applications can publish events too, about their own business changes, on
-topics you define.
+This is the more technical flow. The accelerator publishes consent and user
+lifecycle events itself, while connected applications can publish events about
+their own business changes on custom topics.
 
 Say CarePulse's order system publishes an event whenever a customer updates
 their delivery preferences. MedExpress, the delivery processor, sits behind a
 firewall and can't expose a webhook. Instead, it polls for new events and
 acknowledges each one once it has processed it.
 
-In this flow you'll do exactly that. You'll register a custom topic, subscribe
-a poll receiver to it, publish an event, and then poll for it and acknowledge
-it.
+You'll register a custom topic, subscribe a polling receiver, publish an
+event, retrieve it through the polling API, and acknowledge it after processing.
 
 **Portal:** As the portal administrator, you register the topic and
 subscription and check the result. Publishing and polling are API calls that
 the integrating applications make, not portal actions.
 
-You'll need two access tokens.
-[Event Notification roles and scopes](../role-guide.md#event-notification-roles-and-scopes)
+Portal sign-in is used to register the topic and subscription. The REST API
+steps need two tokens. [Event Notification roles and scopes](../role-guide.md#event-notification-roles-and-scopes)
 lists the roles that grant them:
 
 | Token | Scope | Used by |
@@ -594,9 +424,6 @@ lists the roles that grant them:
 | Publisher | `notifications:events:write` | The application that publishes the event. Users with `dpdp-consent-admin` already have this scope. |
 | Receiver | `notifications:events:poll` | The polling receiver. No default role has this scope, so grant it to a dedicated receiver role or application. |
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 export BASE_URL="https://localhost:9443"
 export TENANT_DOMAIN="example.com"
@@ -604,38 +431,13 @@ export API_BASE="${BASE_URL}/api/dpdp/event-notifications/v1"
 export PUBLISHER_TOKEN="<publisher-access-token>"
 export RECEIVER_TOKEN="<receiver-access-token>"
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-export BASE_URL="https://localhost:9443"
-export TENANT_DOMAIN="example.com"
-export API_BASE="${BASE_URL}/api/dpdp/event-notifications/v1"
-export PUBLISHER_TOKEN="<publisher-access-token>"
-export RECEIVER_TOKEN="<receiver-access-token>"
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$env:BASE_URL = "https://localhost:9443"
-$env:TENANT_DOMAIN = "example.com"
-$env:API_BASE = "$env:BASE_URL/api/dpdp/event-notifications/v1"
-$env:PUBLISHER_TOKEN = "<publisher-access-token>"
-$env:RECEIVER_TOKEN = "<receiver-access-token>"
-```
-
-</TabItem>
-</Tabs>
 
 Change `TENANT_DOMAIN` to your own tenant's domain, and get both tokens from
 that same tenant.
 
 ### Step 1: Register a custom topic
 
-1. Sign in to the portal as the administrator.
+1. Sign in to the portal as Anika, the administrator.
 2. Open **Event Notifications → Topics** and select **Register Topic**.
 3. Enter `delivery.preferences.update` as the **Topic Name**, add a
    **Description**, and select **Register Topic**.
@@ -664,32 +466,10 @@ straight away. Copy its **Subscription ID** with the copy icon in the list:
 
 ![Subscriptions list with the active poll subscription](../../assets/images/try-out/event/12-poll-subscription-active.png)
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 export SUBSCRIPTION_ID="<subscription-id>"
 export SHARED_SECRET="medexpress-sample-secret-4f8a2c91"
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-export SUBSCRIPTION_ID="<subscription-id>"
-export SHARED_SECRET="medexpress-sample-secret-4f8a2c91"
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$env:SUBSCRIPTION_ID = "<subscription-id>"
-$env:SHARED_SECRET = "medexpress-sample-secret-4f8a2c91"
-```
-
-</TabItem>
-</Tabs>
 
 ### Step 3: Publish an event
 
@@ -697,9 +477,6 @@ Now play the order system and publish the change with the publisher token.
 The `group-id` header has to match the subscription's group, which is the
 tenant domain:
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 curl -sk -X POST "${API_BASE}/events" \
   -H "Authorization: Bearer ${PUBLISHER_TOKEN}" \
@@ -713,49 +490,6 @@ curl -sk -X POST "${API_BASE}/events" \
     }
   }'
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-curl -sk -X POST "${API_BASE}/events" \
-  -H "Authorization: Bearer ${PUBLISHER_TOKEN}" \
-  -H "group-id: ${TENANT_DOMAIN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "topic": "delivery.preferences.update",
-    "payload": {
-      "customerReference": "cust-0001",
-      "change": "DELIVERY_WINDOW_UPDATED"
-    }
-  }'
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$Body = @'
-{
-  "topic": "delivery.preferences.update",
-  "payload": {
-    "customerReference": "cust-0001",
-    "change": "DELIVERY_WINDOW_UPDATED"
-  }
-}
-'@
-
-Invoke-RestMethod -SkipCertificateCheck -Method Post -Uri "$env:API_BASE/events" `
-  -Headers @{
-    Authorization = "Bearer $env:PUBLISHER_TOKEN"
-    "group-id"    = $env:TENANT_DOMAIN
-  } `
-  -ContentType "application/json" `
-  -Body $Body | ConvertTo-Json -Depth 10
-```
-
-</TabItem>
-</Tabs>
 
 You'll get back the stored event and its `eventId`:
 
@@ -779,9 +513,6 @@ can look up instead, the way `customerReference` does here.
 Next, switch to MedExpress and poll with the receiver token. The first poll
 can have an empty body:
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 POLL_BODY=''
 POLL_SIGNATURE="sha256=$(printf %s "${POLL_BODY}" | openssl dgst -sha256 -hmac "${SHARED_SECRET}" -hex | awk '{print $2}')"
@@ -794,44 +525,6 @@ curl -sk -X POST "${API_BASE}/events/poll" \
   -H "event-signature: ${POLL_SIGNATURE}" \
   -d "${POLL_BODY}"
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-POLL_BODY=''
-POLL_SIGNATURE="sha256=$(printf %s "${POLL_BODY}" | openssl dgst -sha256 -hmac "${SHARED_SECRET}" -hex | awk '{print $2}')"
-
-curl -sk -X POST "${API_BASE}/events/poll" \
-  -H "Authorization: Bearer ${RECEIVER_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -H "group-id: ${TENANT_DOMAIN}" \
-  -H "subscription-id: ${SUBSCRIPTION_ID}" \
-  -H "event-signature: ${POLL_SIGNATURE}" \
-  -d "${POLL_BODY}"
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$PollBody = ''
-$Hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($env:SHARED_SECRET))
-$PollSignature = 'sha256=' + [BitConverter]::ToString($Hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($PollBody))).Replace('-', '').ToLower()
-
-Invoke-RestMethod -SkipCertificateCheck -Method Post -Uri "$env:API_BASE/events/poll" `
-  -Headers @{
-    Authorization     = "Bearer $env:RECEIVER_TOKEN"
-    "group-id"        = $env:TENANT_DOMAIN
-    "subscription-id" = $env:SUBSCRIPTION_ID
-    "event-signature" = $PollSignature
-  } `
-  -ContentType "application/json" `
-  -Body $PollBody | ConvertTo-Json -Depth 10
-```
-
-</TabItem>
-</Tabs>
 
 `event-signature` is an HMAC-SHA256 of the exact request body, made with the
 subscription's shared secret. For an empty body, it's calculated over zero
@@ -841,9 +534,10 @@ bytes. The server only checks it when
 Sign every request anyway, so your receiver keeps working when someone turns
 the check on.
 
-The response holds any pending deliveries, keyed by delivery ID. Each value
-is a signed event (a compact JWS) carrying the same contents as a webhook
-delivery:
+The response holds pending deliveries in the `sets` object. Each **key** is
+a delivery ID; its **value** is a signed event (a compact JWS) carrying the
+same contents as a webhook delivery. Save the delivery ID key because you'll
+need it in Step 5 to acknowledge the event:
 
 ```json
 {
@@ -870,9 +564,6 @@ claim, under `eventPayload`:
 Once MedExpress has processed the event, it sends the delivery ID back in the
 next poll's `ack` array, signing the new body the same way:
 
-<Tabs groupId="operating-systems">
-<TabItem value="linux" label="Linux" default>
-
 ```bash
 DELIVERY_ID="<delivery-id-from-step-4>"
 POLL_BODY="{\"ack\": [\"${DELIVERY_ID}\"], \"maxEvents\": 20}"
@@ -886,46 +577,6 @@ curl -sk -X POST "${API_BASE}/events/poll" \
   -H "event-signature: ${POLL_SIGNATURE}" \
   -d "${POLL_BODY}"
 ```
-
-</TabItem>
-<TabItem value="macos" label="macOS">
-
-```bash
-DELIVERY_ID="<delivery-id-from-step-4>"
-POLL_BODY="{\"ack\": [\"${DELIVERY_ID}\"], \"maxEvents\": 20}"
-POLL_SIGNATURE="sha256=$(printf %s "${POLL_BODY}" | openssl dgst -sha256 -hmac "${SHARED_SECRET}" -hex | awk '{print $2}')"
-
-curl -sk -X POST "${API_BASE}/events/poll" \
-  -H "Authorization: Bearer ${RECEIVER_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -H "group-id: ${TENANT_DOMAIN}" \
-  -H "subscription-id: ${SUBSCRIPTION_ID}" \
-  -H "event-signature: ${POLL_SIGNATURE}" \
-  -d "${POLL_BODY}"
-```
-
-</TabItem>
-<TabItem value="windows" label="Windows">
-
-```powershell
-$DeliveryId = "<delivery-id-from-step-4>"
-$PollBody = '{"ack": ["' + $DeliveryId + '"], "maxEvents": 20}'
-$Hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($env:SHARED_SECRET))
-$PollSignature = 'sha256=' + [BitConverter]::ToString($Hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($PollBody))).Replace('-', '').ToLower()
-
-Invoke-RestMethod -SkipCertificateCheck -Method Post -Uri "$env:API_BASE/events/poll" `
-  -Headers @{
-    Authorization     = "Bearer $env:RECEIVER_TOKEN"
-    "group-id"        = $env:TENANT_DOMAIN
-    "subscription-id" = $env:SUBSCRIPTION_ID
-    "event-signature" = $PollSignature
-  } `
-  -ContentType "application/json" `
-  -Body $PollBody | ConvertTo-Json -Depth 10
-```
-
-</TabItem>
-</Tabs>
 
 An acknowledged event isn't returned again, so with nothing else pending,
 the response comes back empty:
@@ -939,7 +590,7 @@ If the receiver couldn't process an event, report it in `setErrs` instead of
 
 ### Step 6: Check the result in the portal
 
-Back in the portal as the administrator, open **Event Notifications →
+Back in the portal as Anika, the administrator, open **Event Notifications →
 Events** and find the `delivery.preferences.update` event. Its delivery to the
 poll subscription now shows **Acknowledged**:
 
@@ -957,5 +608,6 @@ and [Poll event deliveries](../event-notification-guide.md#poll-event-deliveries
 
 ## Next Steps
 
-- [Learn: Event Notifications](../learn/event.md) — the concepts and example behind these flows.
-- [Event Notification Guide](../event-notification-guide.md) — the full reference for topics, subscriptions, receivers, signatures, and troubleshooting.
+- [Learn: Event Notifications](../learn/event.md) — revisit the concepts behind these flows.
+- [Try Out: Consent](consent.md) — create, review, and revoke a consent to trigger a lifecycle event.
+- [Event Notification Guide](../event-notification-guide.md) — the reference for topics, subscriptions, receivers, signatures, and troubleshooting.

@@ -36,17 +36,19 @@ Let's follow how **CarePulse** can investigate and handle her complaint.
 She then:
 
 1. Selects **+ Submit a complaint**.
-2. Chooses **Consent Withdrawal Issue** and describes what happened.
+2. Chooses **Consent withdrawal issue** and describes what happened.
 3. Attaches a screenshot of the unwanted email as supporting evidence.
 4. Submits the complaint.
 
-![Submit a complaint dialog with Consent Withdrawal Issue selected, a description, and an attached screenshot](../../assets/images/learn/complaint-submit-dialog.png)
+![Submit a complaint dialog with Consent withdrawal issue selected, a description, and an attached screenshot](../../assets/images/learn/complaint-submit-dialog.png)
 
 *Priya's view (Data Principal): submitting a complaint.*
 
-The portal creates a complaint record with a reference ID, such as `CMP-2026-00001`, allowing **Priya** and the grievance officer to identify and track the case.
+The portal creates a complaint record with a reference ID, such as `CMP-2026-00001`, allowing **Priya** and the grievance officer to identify and track the case. It also carries a statutory due date — the deadline by which **CarePulse** must resolve it under the DPDP Act — so **Ravi** can prioritize complaints that are close to breaching it.
 
 **Priya** can return to **My Complaints** to follow its progress and view updates.
+
+**Try it:** [Submit a complaint](../try-out/complaint.md#1-submit-a-complaint).
 
 ### 2. Investigate the complaint
 
@@ -91,6 +93,8 @@ These notes help document technical findings and follow-up actions without expos
 
 *Ravi's view (DPO): public replies and internal notes together on the same complaint.*
 
+**Try it:** [Investigate and communicate](../try-out/complaint.md#2-investigate-and-communicate).
+
 ### 4. Resolve the complaint
 
 Once CloudEngage confirms that **Priya**'s marketing preferences have been corrected, **Ravi** updates the complaint's status to `RESOLVED` and records an explanation of the outcome.
@@ -102,6 +106,8 @@ Once CloudEngage confirms that **Priya**'s marketing preferences have been corre
 *Priya's view (Data Principal): the resolved complaint, with only the public replies visible.*
 
 The complaint history provides a record of the investigation, communications, supporting evidence, and status changes. This helps **CarePulse** understand how the issue was handled and supports internal reviews and compliance activities.
+
+**Try it:** [Resolve the complaint](../try-out/complaint.md#3-resolve-the-complaint).
 
 ## Understanding complaint status
 
