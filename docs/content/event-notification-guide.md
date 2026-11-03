@@ -456,6 +456,7 @@ curl --request POST "${API_BASE}/subscriptions" \
   --header "Authorization: Bearer ${ACCESS_TOKEN}" \
   --header "Content-Type: application/json" \
   --data '{
+    "name": "<unique-subscription-name>",
     "topics": ["consent.update", "consent.revoke"],
     "filter": {
       "type": "specific",
@@ -468,6 +469,8 @@ curl --request POST "${API_BASE}/subscriptions" \
     }
   }'
 ```
+
+`name` is required and must be unique within the organization (max 225 characters).
 
 The subscription starts in `pending`. It becomes `active` only after the
 callback returns the verification challenge successfully. If verification is
@@ -494,6 +497,7 @@ curl --request POST "${API_BASE}/subscriptions" \
   --header "Authorization: Bearer ${ACCESS_TOKEN}" \
   --header "Content-Type: application/json" \
   --data '{
+    "name": "<unique-subscription-name>",
     "topics": ["consent-status-changed"],
     "filter": {
       "type": "all",
@@ -505,6 +509,8 @@ curl --request POST "${API_BASE}/subscriptions" \
     }
   }'
 ```
+
+`name` is required and must be unique within the organization (max 225 characters).
 
 Retain the returned `subscriptionId` and the supplied shared secret. Both are
 required when polling for deliveries.

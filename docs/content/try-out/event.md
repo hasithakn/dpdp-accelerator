@@ -22,8 +22,11 @@ The key concepts used in the exercises are:
 ## Before you begin
 
 - Ensure you can access the DPDP Accelerator and Consent Portal.
-- Ensure test accounts exist in the same tenant for **Anika**, the administrator (`dpdp-consent-admin`), and **Priya**, the Data Principal (`dpdp-consent-user`).
-- The main steps use the portal UI where indicated. REST API examples are alternatives or are required where the portal does not perform that operation. Each API step identifies the token and scopes it needs. Follow [Managing Access](../learn/managing-access.md) if you need to configure API access.
+- Ensure test accounts exist in the same tenant for **Anika**, the administrator (`dpdp-consent-admin`), and **Priya**, the Data Principal (`dpdp-consent-user`). See [Configuring Users and Roles](../install-and-setup/configuring-users-and-roles.md) if you need to create them.
+- This page uses two applications, representing two different organizations. Set both up via [Managing Access](../learn/managing-access.md) before you start:
+  - **CarePulse** (Data Fiduciary) — needs `internal_consent_mgt_consent_create` (to create the test consent) and `notifications:subscriptions:write` (to register the subscription via API).
+  - **CloudEngage** (Data Processor) — needs `notifications:event-deliveries:complete` (to submit the completion report in Step 6).
+- The main steps use the portal UI where indicated. REST API examples are alternatives or are required where the portal does not perform that operation. Each API step identifies the token and scopes it needs.
 
 ## Notify a processor when a consent is revoked
 
@@ -32,11 +35,9 @@ webhook listener subscribed to `consent.revoke`. You'll start the listener,
 subscribe it, revoke a consent as Priya, and inspect the resulting event
 delivery. This is the recommended flow to try first.
 
-**Portal:** As **Anika**, CarePulse's administrator, you register the
-subscription under **Event Notifications → Subscriptions** and check the
-result under **Events**. As the Data Principal, you revoke the consent from
-**My Consents**. The listener runs outside the portal, standing in for
-CloudEngage's own listener service.
+- **Priya** (Data Principal): revokes consent through **My Consents**.
+- **Anika** (CarePulse Administrator): registers the subscription under **Event Notifications → Subscriptions** and checks the result under **Events**.
+- **CloudEngage** (Data Processor): receives the `consent.revoke` event through its webhook listener, running outside the portal.
 
 You'll need two users in the tenant: Anika with `dpdp-consent-admin`, and a
 Data Principal with `dpdp-consent-user`. We'll call the Data Principal Priya,
@@ -252,6 +253,7 @@ curl -X POST \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
+    "name": "CloudEngage - consent revocations",
     "topics": ["consent.revoke"],
     "filter": {
       "type": "specific",

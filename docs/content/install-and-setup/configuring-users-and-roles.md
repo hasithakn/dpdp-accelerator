@@ -4,16 +4,37 @@ title: Configuring Users and Roles
 
 # Configuring Users and Roles
 
-Once WSO2 Identity Server and the DPDP Accelerator are started, the accelerator automatically provisions three predefined roles: `dpdp-consent-admin`, `dpdp-consent-dpo`, and `dpdp-consent-user`.
+Once a new tenant is created, the accelerator automatically provisions three predefined roles for it: `dpdp-consent-admin`, `dpdp-consent-dpo`, and `dpdp-consent-user`.
 
 This guide walks you through:
-1. [Creating a new user](#1-creating-a-user)
-2. [Understanding accelerator roles](#2-accelerator-roles-overview)
+1. [Understanding accelerator roles](#1-accelerator-roles-overview)
+2. [Creating a new user](#2-creating-a-user)
 3. [Assigning accelerator roles](#3-assigning-accelerator-roles)
 
 ---
 
-## 1. Creating a User
+## 1. Accelerator Roles Overview
+
+The accelerator provides three predefined roles designed to separate user, administrative, and data protection responsibilities:
+
+| Role | Target Persona | Key Capabilities |
+|---|---|---|
+| **`dpdp-consent-admin`** | Data Fiduciary Administrator | Full oversight over consents, purpose/element catalog management, tenant-wide complaint management, and event notification subscriptions. |
+| **`dpdp-consent-dpo`** | Data Protection Officer (DPO) | Organization-wide complaint inspection, review, internal notes, and complaint resolution without administrative consent privileges. |
+| **`dpdp-consent-user`** | Data Principal | Self-service account deletion (`DELETE /scim2/Me`), personal complaint filing and tracking, and personal consent history audit views. |
+
+These same three roles, with a shorter summary, are also listed in [Managing Access](../learn/managing-access.md#understand-the-built-in-roles).
+
+:::tip
+- **Basic Consent Access:** End users can log into the Consent Portal, view their active consents, and authorize or revoke consents without any role assigned. Assign `dpdp-consent-user` when they need to file complaints, view audit history, or delete their accounts.
+- **Role Assignment:** `dpdp-consent-admin` is not automatically assigned to `dpdp-consent-dpo`. If a user requires both administrative oversight and DPO complaint handling capabilities, assign both roles explicitly.
+:::
+
+For detailed information on permissions and OAuth scopes associated with each role, see the [Role Management Guide](../role-guide.md).
+
+---
+
+## 2. Creating a User
 
 Follow these steps to create a user in the Identity Server Console.
 
@@ -64,25 +85,6 @@ On the final **Invitation** step:
 1. Click **Close** to complete user creation.
 
 ![Complete user creation](../../assets/images/install-and-setup/user-creation-credentials.png)
-
----
-
-## 2. Accelerator Roles Overview
-
-The accelerator provides three predefined roles designed to separate user, administrative, and data protection responsibilities:
-
-| Role | Target Persona | Key Capabilities |
-|---|---|---|
-| **`dpdp-consent-admin`** | System & Organization Administrators | Full oversight over consents, purpose/element catalog management, tenant-wide complaint management, and event notification subscriptions. |
-| **`dpdp-consent-dpo`** | Data Protection Officers (DPO) | Organization-wide complaint inspection, review, internal notes, and complaint resolution without administrative consent privileges. |
-| **`dpdp-consent-user`** | Data Principals / End Users | Self-service account deletion (`DELETE /scim2/Me`), personal complaint filing and tracking, and personal consent history audit views. |
-
-:::tip
-- **Basic Consent Access:** End users can log into the Consent Portal, view their active consents, and authorize or revoke consents without any role assigned. Assign `dpdp-consent-user` when they need to file complaints, view audit history, or delete their accounts.
-- **Role Assignment:** `dpdp-consent-admin` is not automatically assigned to `dpdp-consent-dpo`. If a user requires both administrative oversight and DPO complaint handling capabilities, assign both roles explicitly.
-:::
-
-For detailed information on permissions and OAuth scopes associated with each role, see the [Role Management Guide](../role-guide.md).
 
 ---
 

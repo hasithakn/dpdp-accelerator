@@ -7,9 +7,9 @@ The examples use **CarePulse**, with **Priya** as the Data Principal and **Raj**
 ## Before you begin
 
 - Ensure you can access the DPDP Accelerator and Consent Portal.
-- For delegated and co-authorized consent, create test accounts for Priya and Raj in the same tenant.
+- For delegated and co-authorized consent, create test accounts for Priya and Raj in the same tenant. See [Configuring Users and Roles](../install-and-setup/configuring-users-and-roles.md) if you need to create them. Priya and Raj don't need any specific role assigned — authorizing, rejecting, and revoking a consent (including as a named authorizer) is basic consent access, available to any signed-in user.
 
-The steps focus on the portal UI. **Equivalent REST API examples are included to demonstrate how to perform the same operations programmatically.** For these examples, follow [Managing Access](../learn/managing-access.md) to obtain a client-credentials token for the **DPDP Consent API Invoker**.
+The steps focus on the portal UI. **Equivalent REST API examples are included to demonstrate how to perform the same operations programmatically.** For these examples, follow [Managing Access](../learn/managing-access.md) to obtain a client-credentials token for the **DPDP Consent API Invoker**, authorized with the `internal_consent_mgt_consent_create` scope (for the consent-creation examples) and `consent:status-history:view:any` (for the status-history example). See WSO2 Identity Server's [Consent Management v2 API reference](https://is.docs.wso2.com/en/latest/apis/consent-management-v2-api-definition/) for the complete request/response schema.
 
 Set your API base URL and token when trying the API examples:
 
@@ -187,14 +187,6 @@ Retain the returned consent ID for the next steps. The sample `expiryTime` is a 
 
 ![Direct Consent detail, Active, with Revoke available to the Data Principal](../../assets/images/try-out/consent/direct-consent-active.png)
 
-You can also retrieve the consent through the user-scoped API. This call is optional if you have already reviewed it in the portal. To run it, replace `${PRIYA_ACCESS_TOKEN}` with Priya's user token and `<consent-id>` with the ID returned during creation.
-
-```bash
-curl \
-  "${BASE_URL}/api/users/v1/me/consents/<consent-id>" \
-  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
-```
-
 Before relying on a consent for processing, the consuming application should check that the consent is `ACTIVE`, that the intended processing purpose is covered, and that the required data elements are included. Creating or retrieving a consent does not, by itself, enforce those checks in a downstream application.
 
 ### Revoke the consent as Priya
@@ -202,15 +194,7 @@ Before relying on a consent for processing, the consuming application should che
 1. On the consent detail page, select **Revoke** and confirm the action.
 2. Reopen the record and verify that its state is `REVOKED` and the lifecycle section includes the corresponding audit entry.
 
-The equivalent API request is optional. To run it, replace `${PRIYA_ACCESS_TOKEN}` with Priya's user token:
-
-```bash
-curl -X POST \
-  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/revoke" \
-  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
-```
-
-Revocation has no required request or response body. With lifecycle event publication enabled, a supported revocation lifecycle path publishes `consent.revoke`.
+With lifecycle event publication enabled, a supported revocation lifecycle path publishes `consent.revoke`.
 
 ### Inspect the consent as an administrator
 
@@ -223,7 +207,7 @@ The self-service view returns consents involving the signed-in user. The adminis
 
 ### Inspect the status history
 
-You can also use the DPDP Consent Management API to verify the lifecycle history independently of the portal. This call is optional; to run it, replace `${ADMIN_ACCESS_TOKEN}` with an administrator token that has the required scopes.
+You can also use the DPDP Consent Management API to verify the lifecycle history independently of the portal. This call is optional; to run it, replace `${ADMIN_ACCESS_TOKEN}` with a token that has the `consent:status-history:view:any` scope.
 
 ```bash
 curl \
@@ -254,6 +238,26 @@ Representative response after revocation (the IDs and timestamps will differ in 
 ```
 
 Expected result: the consent is `REVOKED`, and the status history records the transition from `ACTIVE` to `REVOKED`.
+
+### Equivalent API calls
+
+The self-service API also supports retrieving and revoking Priya's consent directly, using her own user token. Replace `<consent-id>` with the consent's ID.
+
+Retrieve the consent:
+
+```bash
+curl \
+  "${BASE_URL}/api/users/v1/me/consents/<consent-id>" \
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
+```
+
+Revoke the consent (no request or response body required):
+
+```bash
+curl -X POST \
+  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/revoke" \
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
+```
 
 ## Authorize consent as a guardian or delegate
 
@@ -317,26 +321,6 @@ Retain the returned consent ID. Do not add Priya as another entry in `authorizat
 
 4. Reopen the consent and confirm that Raj's authorization is `APPROVED`. Because Raj is the only required authorizer in this example, the aggregate consent becomes `ACTIVE`. If several authorizers were supplied, it would remain `PENDING` until all required authorizers approved.
 
-Optional API alternative: Raj can inspect his pending consents through the user-scoped API. Replace `${RAJ_ACCESS_TOKEN}` with Raj's user token:
-
-```bash
-curl \
-  "${BASE_URL}/api/users/v1/me/consents?state=PENDING&relation=AUTHORIZER&attributes=purposes,authorizations" \
-  -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}"
-```
-
-Alternatively, approve the consent through the API using Raj's user token. Replace `${RAJ_ACCESS_TOKEN}` and `<consent-id>` with the appropriate values:
-
-```bash
-curl -X POST \
-  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
-  -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{ "state": "APPROVED" }'
-```
-
-A successful authorization has no required response body.
-
 ### Verify the result as Priya
 
 1. Sign back in to the Consent Portal as Priya.
@@ -346,15 +330,33 @@ A successful authorization has no required response body.
 
    ![Full snapshot history showing the consent created by admin and approved by Raj](../../assets/images/try-out/consent/snapshot-history-after-approval.png)
 
-Optional API alternative — the equivalent subject-scoped query uses Priya's user token:
+Expected result: Priya and Raj can see the same consent through different relationships. Only the named authorizer can record the delegated decision, and the consent becomes active only after all required authorizers approve it. Relationship validation and downstream enforcement remain the Data Fiduciary's responsibility; this flow demonstrates consent storage, authorization, state resolution, and audit behavior in the accelerator.
+
+### Equivalent API calls
+
+Raj can inspect his pending consents and approve directly through the self-service API, using his own user token:
+
+```bash
+curl \
+  "${BASE_URL}/api/users/v1/me/consents?state=PENDING&relation=AUTHORIZER&attributes=purposes,authorizations" \
+  -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}"
+```
+
+```bash
+curl -X POST \
+  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
+  -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{ "state": "APPROVED" }'
+```
+
+A successful authorization has no required response body. Priya can query the same consent by her own relationship to it:
 
 ```bash
 curl \
   "${BASE_URL}/api/users/v1/me/consents?relation=SUBJECT&attributes=purposes,authorizations" \
   -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}"
 ```
-
-Expected result: Priya and Raj can see the same consent through different relationships. Only the named authorizer can record the delegated decision, and the consent becomes active only after all required authorizers approve it. Relationship validation and downstream enforcement remain the Data Fiduciary's responsibility; this flow demonstrates consent storage, authorization, state resolution, and audit behavior in the accelerator.
 
 ## Create a co-authorized consent
 
@@ -395,30 +397,14 @@ Retain the returned consent ID. Because authorizers are specified, the consent s
 ### Approve as Priya
 
 1. Sign in as Priya and open **My Consents**, filtered to **Managed**.
-2. Approve Priya's own authorization entry in the UI. If you prefer the API, run the optional request below using Priya's user token:
-
-```bash
-curl -X POST \
-  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
-  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{ "state": "APPROVED" }'
-```
+2. Approve Priya's own authorization entry in the UI.
 
 Reopen the consent and confirm that Priya's decision is recorded. The overall consent remains `PENDING` until Raj also makes his decision.
 
 ### Approve as Raj
 
 1. Sign in as Raj and open the same consent from **My Consents**, filtered to **Managed**, or from **My Pending Consents**.
-2. Review the consent and approve Raj's own authorization entry in the UI. If you prefer the API, run the optional request below using Raj's user token:
-
-```bash
-curl -X POST \
-  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
-  -H "Authorization: Bearer ${RAJ_ACCESS_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{ "state": "APPROVED" }'
-```
+2. Review the consent and approve Raj's own authorization entry in the UI.
 
 ### Verify the result
 
@@ -429,6 +415,20 @@ This differs from the other models:
 - **Direct Consent:** no named authorizers; the consent becomes `ACTIVE` immediately.
 - **Delegated Consent:** the subject is not a named authorizer; another person makes the authorization decision.
 - **Co-authorized Consent:** the subject and at least one other person are named authorizers and must each make a decision.
+
+### Equivalent API calls
+
+Both Priya and Raj can approve their own authorization entry directly through the self-service API, each with their own user token:
+
+```bash
+curl -X POST \
+  "${BASE_URL}/api/users/v1/me/consents/<consent-id>/authorize" \
+  -H "Authorization: Bearer ${PRIYA_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{ "state": "APPROVED" }'
+```
+
+The same request, using `${RAJ_ACCESS_TOKEN}`, records Raj's decision.
 
 ## Next Steps
 

@@ -15,7 +15,7 @@ For the complete list of endpoints and schemas, see the [Complaint Server API](h
 ## Before you begin
 
 - Ensure you can access the DPDP Accelerator and Consent Portal.
-- Create test accounts for **Priya** (Data Principal) and **Ravi** (Complaint Officer) in the same tenant, with the appropriate roles assigned.
+- Create test accounts for **Priya** (Data Principal) and **Ravi** (Complaint Officer) in the same tenant, with the appropriate roles assigned. See [Configuring Users and Roles](../install-and-setup/configuring-users-and-roles.md) if you need to create them.
 
 The walkthrough focuses on the portal UI. REST API examples are provided as alternatives for performing the same operations programmatically.
 
